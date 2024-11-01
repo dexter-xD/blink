@@ -81,10 +81,16 @@ The server is set up to:
 2. Listen for incoming connections.
 3. Accept connections and print any data received from clients to the console.
 
-### Function Descriptions
+Here are the updated function descriptions, including the new functions:
 
-- **`initialize_server(struct sockaddr_in* address)`**: Sets up and binds the server socket.
-- **`read_client_data(int socket, char* buffer)`**: Reads and displays data from the connected client.
+### Function Descriptions
+- **`initialize_server(struct sockaddr_in* address)`**: Sets up and binds the server socket to the specified address and port, prepares the socket to listen for incoming connections, and returns the file descriptor for the server socket.
+  
+- **`read_client_data(int socket, char* buffer)`**: Continuously reads data from the connected client, displays it on the server console, and clears the buffer after each read for fresh data.
+
+- **`serve_html(const char* filename)`**: Opens and reads an HTML file specified by `filename`, then returns its contents as a dynamically allocated string. If an error occurs, it returns `NULL`. This function is responsible for preparing HTML content to serve in response to client requests.
+
+- **`handle_client(int new_socket)`**: Handles incoming client requests. It reads the HTTP request, checks if it's a main page request (ignoring favicon requests), and sends the appropriate HTTP response. If an HTML file is found, it serves the content; otherwise, it sends a 404 error response and closes the connection with the client. 
 
 ## Troubleshooting
 
