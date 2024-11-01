@@ -1,0 +1,72 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCP Message Sender</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+            text-align: center;
+        }
+        form {
+            margin: 20px auto;
+            max-width: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+        input[type="text"] {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <h1>Send a Message to the TCP Server</h1>
+    <form id="messageForm">
+        <input type="text" id="messageInput" placeholder="Enter your message" required>
+        <button type="submit">Send Message</button>
+    </form>
+    <div id="response" style="margin-top: 20px;"></div>
+
+    <script>
+        document.getElementById('messageForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent form submission
+
+            const message = document.getElementById('messageInput').value;
+
+            // Send the message to the TCP server using fetch API
+            fetch('http://localhost:8080', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `message=${encodeURIComponent(message)}`
+            })
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('response').innerText = `Server response: ${data}`;
+            })
+            .catch(error => {
+                document.getElementById('response').innerText = 'Error sending message';
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
