@@ -9,17 +9,26 @@ project/
 ├── CMakeLists.txt             # Build configuration
 ├── include/
 │   ├── server.h               # Main server header file
+│   ├── html_serve.h           # Header for serve_html function
+│   ├── request_handler.h      # Header for handle_client function
 │   └── socket_utils.h         # Header for socket utility functions
 ├── src/
 │   ├── server.c               # Main server program
+│   ├── html_serve.c           # serve_html function
+│   ├── request_handler.c      # handle_client function
 │   └── socket_utils.c         # Utility functions for socket operations
 └── README.md                  # Project documentation
 ```
 
-### Files
-- **`server.c`**: Contains the main server logic.
-- **`socket_utils.c`**: Includes utility functions for socket initialization and data handling.
-- **`server.h`** and **`socket_utils.h`**: Header files that declare the functions and constants used in `server.c` and `socket_utils.c`.
+### Files 
+- **`server.c`**: Contains the main server loop, which listens for and accepts client connections.
+- **`html_serve.c`**: Handles HTML file reading and serves HTML content to clients. Contains the `serve_html` function.
+- **`request_handler.c`**: Manages client requests by processing incoming HTTP requests and serving appropriate responses. Contains the `handle_client` function.
+- **`socket_utils.c`**: Includes utility functions for socket initialization and client data handling. Contains the `initialize_server` and `read_client_data` functions.
+- **`server.h`**: Declares main server-related constants and functions.
+- **`html_serve.h`**: Declares the function used to read and serve HTML files.
+- **`request_handler.h`**: Declares the function to handle client requests.
+- **`socket_utils.h`**: Declares utility functions for initializing sockets and reading client data.
 
 ## Prerequisites
 
