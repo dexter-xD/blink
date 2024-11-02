@@ -9,4 +9,4 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 include_directories(include)
 
 # Add the executable
-add_executable(server src/server.c src/socket_utils.c src/html_serve.c src/request_handler.c)
+add_executable(server src/server.c src/socket_utils.c src/html_serve.c src/request_handler.c src/template.c)

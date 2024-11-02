@@ -1,6 +1,6 @@
 # TCP Server Project
 
-This project is a simple TCP server written in C, using socket programming concepts. It listens on a specified port, accepts client connections, and prints messages received from clients to the console. The code is organized into multiple files with CMake as the build system.
+This project is a simple TCP server written in C, using socket programming concepts. It listens on a specified port, accepts client connections, and serves dynamic HTML content based on incoming requests using a templating system that supports dynamic values, if-else conditions, and loops. The code is organized into multiple files with CMake as the build system.
 
 ## Project Structure
 
@@ -11,11 +11,13 @@ project/
 │   ├── server.h               # Main server header file
 │   ├── html_serve.h           # Header for serve_html function
 │   ├── request_handler.h      # Header for handle_client function
+│   ├── template.h             # Header for template processing functions
 │   └── socket_utils.h         # Header for socket utility functions
 ├── src/
 │   ├── server.c               # Main server program
 │   ├── html_serve.c           # serve_html function
 │   ├── request_handler.c      # handle_client function
+│   ├── template.c             # Template processing functions
 │   └── socket_utils.c         # Utility functions for socket operations
 └── README.md                  # Project documentation
 ```
@@ -24,10 +26,12 @@ project/
 - **`server.c`**: Contains the main server loop, which listens for and accepts client connections.
 - **`html_serve.c`**: Handles HTML file reading and serves HTML content to clients. Contains the `serve_html` function.
 - **`request_handler.c`**: Manages client requests by processing incoming HTTP requests and serving appropriate responses. Contains the `handle_client` function.
+- **`template.c`**: Implements template processing functions to support dynamic values, if-else conditions, and loops in HTML content.
 - **`socket_utils.c`**: Includes utility functions for socket initialization and client data handling. Contains the `initialize_server` and `read_client_data` functions.
 - **`server.h`**: Declares main server-related constants and functions.
 - **`html_serve.h`**: Declares the function used to read and serve HTML files.
 - **`request_handler.h`**: Declares the function to handle client requests.
+- **`template.h`**: Declares functions for processing templates with dynamic content.
 - **`socket_utils.h`**: Declares utility functions for initializing sockets and reading client data.
 
 ## Prerequisites
@@ -69,28 +73,79 @@ This will create an executable file named `server` inside a `bin` directory unde
 After building, you can start the server as follows:
 
 ```bash
-./bin/server
+valgrind --leak-check=full ./bin/server 
 ```
 
-The server will listen on port `8080` (default setting) and print messages received from clients.
+The server will listen on port `8080` (default setting) and process incoming client requests.
 
-## Project Details
+## Template Features
 
-The server is set up to:
-1. Create and bind a socket to `PORT 8080`.
-2. Listen for incoming connections.
-3. Accept connections and print any data received from clients to the console.
+The server supports a templating system that allows for dynamic content in HTML files. The following features are implemented:
 
-Here are the updated function descriptions, including the new functions:
+### 1. Dynamic Values
 
-### Function Descriptions
-- **`initialize_server(struct sockaddr_in* address)`**: Sets up and binds the server socket to the specified address and port, prepares the socket to listen for incoming connections, and returns the file descriptor for the server socket.
-  
-- **`read_client_data(int socket, char* buffer)`**: Continuously reads data from the connected client, displays it on the server console, and clears the buffer after each read for fresh data.
+You can replace placeholders in the template with dynamic values. Placeholders are defined as `{{key}}`, where `key` corresponds to the variable you want to insert.
 
-- **`serve_html(const char* filename)`**: Opens and reads an HTML file specified by `filename`, then returns its contents as a dynamically allocated string. If an error occurs, it returns `NULL`. This function is responsible for preparing HTML content to serve in response to client requests.
+### 2. If-Else Conditions
 
-- **`handle_client(int new_socket)`**: Handles incoming client requests. It reads the HTTP request, checks if it's a main page request (ignoring favicon requests), and sends the appropriate HTTP response. If an HTML file is found, it serves the content; otherwise, it sends a 404 error response and closes the connection with the client. 
+The server can handle if-else statements within templates. Use the following syntax:
+
+```
+{% if condition %}
+    Content to show if condition is true
+{% else %}
+    Content to show if condition is false
+{% endif %}
+```
+
+### 3. For Loops
+
+You can create loops to iterate over a list of items in your templates using the following syntax:
+
+```
+{% for item in items %}
+    Content to repeat for each item
+{% endfor %}
+```
+
+## Example Usage
+
+### HTML Template
+
+Create an HTML file (e.g., `index.html`) with the following content to test the features:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Template Example</title>
+</head>
+<body>
+    <h1>Welcome to the Template Server</h1>
+    
+    <p>{{ greeting }}</p>
+
+    {% if is_logged_in %}
+        <p>Hello, {{ username }}!</p>
+    {% else %}
+        <p>Please log in to access more features.</p>
+    {% endif %}
+
+    <h2>Your Items:</h2>
+    <ul>
+        {% for item in items %}
+            <li>{{ item }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+```
+
+### Sending a Request
+
+To send a request to the server, you can use a web browser or a tool like `curl`. Make sure to specify the correct HTML file to serve based on your request.
 
 ## Troubleshooting
 

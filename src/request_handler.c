@@ -21,11 +21,21 @@ void handle_client(int new_socket) {
     // Serve the main HTML file (index.html)
     char* html_content = serve_html("../html/index.html");
     if (html_content) {
+        const char* keys[] = { "user", "is_logged_in" };
+        const char* values[] = { "Dexter", "1" }; // 1 means is_logged_in and empty string ("") for not_logged_in
+        const char* loop_key = "item";
+        const char* loop_values[] = { "Item 1", "Item 2", "Item 3", "Item 4" }; // Items to loop over
+
+        char* processed_template = process_template(html_content, keys, values, 2, loop_key, loop_values, 4);
+
+
+
         // Send HTTP response headers for successful request
         write(new_socket, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n", 48);
         // Send the HTML content of the file
-        write(new_socket, html_content, strlen(html_content));
-        free(html_content); // Free the memory allocated for HTML content
+        write(new_socket, processed_template, strlen(processed_template));
+        free(html_content);        // Free the memory allocated for HTML content
+        free(processed_template);     // Free the memory allocated for processed HTML content
     }
     else {
         // If HTML file not found, send a 404 Not Found response

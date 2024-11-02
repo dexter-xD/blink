@@ -1,4 +1,3 @@
-// include/socket_utils.h
 #ifndef SOCKET_UTILS_H
 #define SOCKET_UTILS_H
 
@@ -16,4 +15,4 @@
 int initialize_server(struct sockaddr_in* address);
 void read_client_data(int socket, char* buffer);
 
-#endif // SOCKET_UTILS_H
+#endif

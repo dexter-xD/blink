@@ -1,5 +1,3 @@
-// include/request_handler.h
-
 #ifndef REQUEST_HANDLER_H
 #define REQUEST_HANDLER_H
 
@@ -7,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "html_serve.h"
+#include "template.h"
 
 #define BUFFER_SIZE 1024
 

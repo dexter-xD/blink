@@ -1,4 +1,3 @@
-// src/server.c
 #include "server.h"
 
 #define PORT 8080
