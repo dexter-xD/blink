@@ -1,4 +1,5 @@
 #include "request_handler.h"
+#include "websocket.h"
 
 int is_websocket_request(const char* buffer) {
     return (strstr(buffer, "Upgrade: websocket") && strstr(buffer, "Connection: Upgrade"));
@@ -14,16 +15,28 @@ void handle_client(int new_socket) {
     }
     
     buffer[bytes_read] = '\0';
-    if (strstr(buffer, "GET /") != NULL && strstr(buffer, "GET /favicon.ico") == NULL) {
-        printf("Connection accepted\n");
-        printf("Request: %s\n", buffer);
+    
+    if (is_websocket_request(buffer) && 
+        (strstr(buffer, "GET /ws") || strstr(buffer, "GET /socket"))) {
+        printf("%s%s[WebSocket] %sRequest detected, redirecting to WebSocket handler%s\n",
+               BOLD, COLOR_BLUE, COLOR_RESET, COLOR_RESET);
+        handle_websocket_client(new_socket, ws_clients);
+        return;
     }
+    
+    if (strstr(buffer, "GET /") != NULL && strstr(buffer, "GET /favicon.ico") == NULL) {
+        printf("%s%s[HTTP] %sRequest: %.*s%s\n", 
+               BOLD, COLOR_GREEN, COLOR_RESET, 50, buffer, COLOR_RESET);
+    }
+    
     if (strstr(buffer, "GET /favicon.ico") != NULL) {
         close(new_socket);
         return;
     }
 
-    char* html_content = serve_html("../html/index.html");
+    char path[256];
+    snprintf(path, sizeof(path), "%s/index.html", HTML_DIR);
+    char* html_content = serve_html(path);
     if (!html_content) {
         const char* not_found_response = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<h1>404 Not Found</h1>";
         write(new_socket, not_found_response, strlen(not_found_response));
@@ -54,7 +67,15 @@ void handle_client(int new_socket) {
         return;
     }
 
-    write(new_socket, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n", 48);
+    const char* headers = "HTTP/1.1 200 OK\r\n"
+                         "Content-Type: text/html; charset=UTF-8\r\n"
+                         "Connection: keep-alive\r\n"
+                         "Cache-Control: no-store, no-cache, must-revalidate, max-age=0\r\n"
+                         "Pragma: no-cache\r\n"
+                         "Access-Control-Allow-Origin: *\r\n"
+                         "\r\n";
+    
+    write(new_socket, headers, strlen(headers));
     write(new_socket, final_html, strlen(final_html));
     free(final_html);
     final_html = NULL;
@@ -62,20 +83,58 @@ void handle_client(int new_socket) {
 }
 
 void handle_websocket_client(int new_socket, ws_clients_t* clients) {
+    if (!clients || new_socket <= 0) {
+        if (new_socket > 0) close(new_socket);
+        return;
+    }
+
     char buffer[BUFFER_SIZE] = { 0 };
-    ssize_t bytes_read = read(new_socket, buffer, BUFFER_SIZE - 1);
-    if (bytes_read <= 0) {
+    
+
+    struct timeval tv;
+    tv.tv_sec = 2;
+    tv.tv_usec = 0;
+    if (setsockopt(new_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv) < 0) {
+        perror("setsockopt failed");
         close(new_socket);
         return;
     }
     
-
+    ssize_t bytes_read = read(new_socket, buffer, BUFFER_SIZE - 1);
+    if (bytes_read <= 0) {
+        perror("Error reading WebSocket handshake request");
+        close(new_socket);
+        return;
+    }
+    
     buffer[bytes_read] = '\0';
-    if (is_websocket_request(buffer)) {
-        if (process_ws_handshake(new_socket, buffer) == 0) {
-            add_ws_client(clients, new_socket);
-            return;
+    char* origin = strstr(buffer, "Origin: ");
+    if (origin) {
+        char* end = strstr(origin, "\r\n");
+        if (end) {
+            *end = '\0';
+            printf("%s%s[WebSocket] %sConnection attempt from %s%s\n", 
+                   BOLD, COLOR_BLUE, COLOR_RESET, origin + 8, COLOR_RESET);
+            *end = '\r'; 
         }
     }
+    
+    if (is_websocket_request(buffer)) {
+        printf("%s%s[WebSocket] %sHandshake received%s\n", 
+               BOLD, COLOR_BLUE, COLOR_RESET, COLOR_RESET);
+        if (process_ws_handshake(new_socket, buffer) == 0) {
+            printf("%s%s[WebSocket] %s%sHandshake successful%s\n", 
+                   BOLD, COLOR_BLUE, BOLD, COLOR_GREEN, COLOR_RESET);
+            add_ws_client(clients, new_socket);
+            return;
+        } else {
+            printf("%s%s[WebSocket] %s%sHandshake failed%s\n", 
+                   BOLD, COLOR_BLUE, BOLD, COLOR_RED, COLOR_RESET);
+        }
+    } else {
+        printf("%s%s[WebSocket] %s%sNot a valid WebSocket upgrade request%s\n", 
+               BOLD, COLOR_BLUE, BOLD, COLOR_RED, COLOR_RESET);
+    }
+    
     close(new_socket);
 }

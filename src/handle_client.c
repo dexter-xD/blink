@@ -1,4 +1,5 @@
 #include "handle_client.h"
+#include "websocket.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -156,9 +157,11 @@ void handle_websocket_client(int client_socket, ws_clients_t* clients) {
     
     if (process_ws_handshake(client_socket, buffer)) {
         add_ws_client(clients, client_socket);
-        printf("WebSocket client connected\n");
+        printf("%s%s[WebSocket] %s%sClient connected%s\n", 
+               BOLD, COLOR_BLUE, BOLD, COLOR_GREEN, COLOR_RESET);
     } else {
-        fprintf(stderr, "Failed to process WebSocket handshake\n");
+        fprintf(stderr, "%s%s[WebSocket] %s%sFailed to process WebSocket handshake%s\n", 
+                BOLD, COLOR_RED, BOLD, COLOR_YELLOW, COLOR_RESET);
         close(client_socket);
     }
 }

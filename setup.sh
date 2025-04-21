@@ -1,3 +1,11 @@
+#!/bin/bash
+
+# Create the html directory in the project root
+mkdir -p html
+
+# Create a basic index.html file if it doesn't exist
+if [ ! -f html/index.html ]; then
+    cat > html/index.html << 'EOF'
 <!DOCTYPE html>
 <html lang="en">
 
@@ -14,7 +22,7 @@
             line-height: 1.6;
         }
         h1 {
-            color: black;
+            color: #2c3e50;
         }
         ul {
             background-color: #f8f9fa;
@@ -25,10 +33,10 @@
 </head>
 
 <body>
-    <h1>Hello from {{user}}!</h1>
+    <h1>Hello {{user}}!</h1>
 
     {% if is_logged_in %}
-    <p>  TCP server in C with dynamic HTML templating. </p>
+    <p>Welcome back, {{user}}! We're glad to see you again.</p>
     {% else %}
     <p>Please log in to access your account.</p>
     {% endif %}
@@ -42,3 +50,9 @@
 </body>
 
 </html>
+EOF
+    echo "Created sample index.html file"
+fi
+
+echo "Setup complete. The html directory is ready for use."
+echo "You can now build and run your server." 

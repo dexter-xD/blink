@@ -6,7 +6,7 @@
 #define PORT 8080
 #define BUFFER_SIZE 1024
 #define RELOAD_DELAY_MS 300
-
+#define SHUTDOWN_TIMEOUT_SEC 5 
 
 typedef struct {
     ws_clients_t* clients;
@@ -15,104 +15,178 @@ typedef struct {
 } ws_monitor_args_t;
 
 volatile sig_atomic_t server_running = 1;
+volatile sig_atomic_t shutdown_in_progress = 0;
 pthread_t watcher_thread = 0;
 pthread_t monitor_thread = 0;
 ws_clients_t* ws_clients = NULL;
 pthread_mutex_t* file_mutex_ptr = NULL;
 ws_monitor_args_t* monitor_args = NULL;
 
+void cleanup_resources(void);
+
 void signal_handler(int signum) {
-    static int shutdown_in_progress = 0;
-    
     if (shutdown_in_progress) {
-        if (signum == SIGINT) {
-            printf("\nForced exit. Cleanup may be incomplete.\n");
-            exit(EXIT_FAILURE);
-        }
-        return;
+        printf("\n%s%s[SERVER] %s%sForced shutdown - terminating immediately%s\n", 
+               BOLD, COLOR_RED, BOLD, COLOR_YELLOW, COLOR_RESET);
+        
+        _exit(EXIT_FAILURE);
     }
     
     shutdown_in_progress = 1;
     server_running = 0;
-    printf("\nReceived signal %d. Shutting down server...\n", signum);
-    sigset_t mask;
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGINT);
-    sigaddset(&mask, SIGTERM);
-    sigprocmask(SIG_BLOCK, &mask, NULL);
+    
+    printf("\n%s%s[SERVER] %sReceived signal %d. Initiating shutdown sequence...%s\n", 
+           BOLD, COLOR_BLUE, COLOR_YELLOW, signum, COLOR_RESET);
+    printf("%s%s[SERVER] %sPlease wait for cleanup to complete (press Ctrl+C again for forced exit)%s\n", 
+           BOLD, COLOR_BLUE, COLOR_CYAN, COLOR_RESET);
+    
+    struct sigaction forced_exit;
+    memset(&forced_exit, 0, sizeof(forced_exit));
+    forced_exit.sa_handler = signal_handler;
+    sigaction(SIGINT, &forced_exit, NULL);
+    sigaction(SIGTERM, &forced_exit, NULL);
+}
+
+void* shutdown_watchdog(void* arg) {
+    int timeout = SHUTDOWN_TIMEOUT_SEC;
+    printf("%s%s[SERVER] %sShutdown watchdog started (timeout: %d seconds)%s\n", 
+           BOLD, COLOR_BLUE, COLOR_CYAN, timeout, COLOR_RESET);
+    
+    sleep(timeout);
+    if (shutdown_in_progress) {
+        printf("%s%s[SERVER] %s%sShutdown timeout exceeded! Forcing exit...%s\n", 
+               BOLD, COLOR_RED, BOLD, COLOR_YELLOW, COLOR_RESET);
+        _exit(EXIT_FAILURE);
+    }
+    
+    return NULL;
 }
 
 void* ws_monitor_thread(void* args) {
     ws_monitor_args_t* monitor_args = (ws_monitor_args_t*)args;
     bool last_change_state = false;
     time_t last_reload_time = 0;
-    const int RELOAD_COOLDOWN_SEC = 2;
+    const int RELOAD_COOLDOWN_SEC = 1; 
+    const int PING_INTERVAL_MS = 10000; 
+    time_t last_ping_time = 0;
     
-    printf("WebSocket monitor thread started\n");
+    printf("%s%s[WS MONITOR] %sThread started%s\n", 
+           BOLD, COLOR_BLUE, COLOR_GREEN, COLOR_RESET);
     
     while (server_running) {
-        pthread_mutex_lock(monitor_args->mutex);
-        bool current_change_state = *(monitor_args->file_changed);
-        
-        if (current_change_state && !last_change_state) {
-            time_t current_time = time(NULL);
-            if (difftime(current_time, last_reload_time) >= RELOAD_COOLDOWN_SEC) {
-                printf("Hot reload: Detected file changes, notifying clients...\n");
-                usleep(RELOAD_DELAY_MS * 1000);
-                if (monitor_args->clients) {
-                    broadcast_to_ws_clients(monitor_args->clients, "reload");
-                }
-                last_reload_time = current_time;
-                *(monitor_args->file_changed) = false;
-            } else {
-                printf("Hot reload: Changes detected, but in cooldown period. Skipping...\n");
+        time_t current_time = time(NULL);
+        bool should_notify = false;
+        if (difftime(current_time, last_ping_time) * 1000 >= PING_INTERVAL_MS) {
+            if (monitor_args->clients && monitor_args->clients->count > 0) {
+                broadcast_to_ws_clients(monitor_args->clients, "ping");
+                last_ping_time = current_time;
             }
         }
         
-        last_change_state = *(monitor_args->file_changed);
+        pthread_mutex_lock(monitor_args->mutex);
+        bool current_change_state = *(monitor_args->file_changed);
+        
+        if (current_change_state) {
+            if (difftime(current_time, last_reload_time) >= RELOAD_COOLDOWN_SEC) {
+                printf("%s%s[HOT RELOAD] %sFile changes detected, preparing notification%s\n", 
+                       BOLD, COLOR_MAGENTA, COLOR_RESET, COLOR_RESET);
+                
+                if (monitor_args->clients && monitor_args->clients->count > 0) {
+                    should_notify = true;
+                    last_reload_time = current_time;
+                } else {
+                    printf("%s%s[HOT RELOAD] %sNo clients connected, skipping notification%s\n", 
+                           BOLD, COLOR_MAGENTA, COLOR_YELLOW, COLOR_RESET);
+                }
+                
+                *(monitor_args->file_changed) = false;
+            } else {
+                printf("%s%s[HOT RELOAD] %sChanges detected during cooldown period (%ds), deferring%s\n", 
+                       BOLD, COLOR_MAGENTA, COLOR_YELLOW, RELOAD_COOLDOWN_SEC, COLOR_RESET);
+            }
+        }
+        
         pthread_mutex_unlock(monitor_args->mutex);
+        
+        if (should_notify) {
+            usleep(RELOAD_DELAY_MS * 1000);ts
+            printf("%s%s[HOT RELOAD] %sNotifying %s%d%s client(s) to reload%s\n", 
+                   BOLD, COLOR_MAGENTA, COLOR_RESET, 
+                   COLOR_YELLOW, monitor_args->clients->count, COLOR_RESET, COLOR_RESET);
+            
+            broadcast_to_ws_clients(monitor_args->clients, "reload");
+            
+            printf("%s%s[HOT RELOAD] %s%sReload notification sent successfully%s\n", 
+                   BOLD, COLOR_MAGENTA, BOLD, COLOR_GREEN, COLOR_RESET);
+        }
+        
+        last_change_state = current_change_state;
         usleep(100000);
     }
     
-    printf("WebSocket monitor thread exiting\n");
+    printf("%s%s[WS MONITOR] %s%sThread stopped%s\n", 
+           BOLD, COLOR_BLUE, BOLD, COLOR_YELLOW, COLOR_RESET);
     return NULL;
 }
 
-void cleanup_resources() {
-    static int cleanup_in_progress = 0;
-    if (cleanup_in_progress) {
+void cleanup_resources(void) {
+    static int cleanup_running = 0;
+    if (cleanup_running) {
         return;
     }
     
-    cleanup_in_progress = 1;
-    printf("Cleaning up resources...\n");
+    cleanup_running = 1;
+    printf("%s%s[SERVER] %sShutdown in progress, cleaning up resources...%s\n", 
+           BOLD, COLOR_BLUE, COLOR_RESET, COLOR_RESET);
+    pthread_t watchdog_thread;
+    if (!pthread_create(&watchdog_thread, NULL, shutdown_watchdog, NULL)) {
+        pthread_detach(watchdog_thread);
+    }
+    
     server_running = 0;
+    if (ws_clients) {
+        printf("%s%s[SERVER] %sClosing WebSocket connections...%s\n", 
+              BOLD, COLOR_BLUE, COLOR_CYAN, COLOR_RESET);
+        free_ws_clients(ws_clients);
+        ws_clients = NULL;
+    }
+    
     if (watcher_thread != 0) {
+        printf("%s%s[SERVER] %sStopping file watcher thread...%s\n", 
+              BOLD, COLOR_BLUE, COLOR_CYAN, COLOR_RESET);
         int cancel_result = pthread_cancel(watcher_thread);
         if (cancel_result != 0) {
-            fprintf(stderr, "Warning: Failed to cancel file watcher thread (error %d)\n", cancel_result);
+            fprintf(stderr, "%s%s[ERROR] %sFailed to cancel file watcher thread (error %d)%s\n", 
+                    BOLD, COLOR_RED, COLOR_RESET, cancel_result, COLOR_RESET);
         }
         int join_result = pthread_join(watcher_thread, NULL);
         if (join_result != 0) {
-            fprintf(stderr, "Warning: Failed to join file watcher thread (error %d)\n", join_result);
+            fprintf(stderr, "%s%s[ERROR] %sFailed to join file watcher thread (error %d)%s\n", 
+                    BOLD, COLOR_RED, COLOR_RESET, join_result, COLOR_RESET);
             pthread_detach(watcher_thread);
         } else {
-            printf("File watcher thread stopped\n");
+            printf("%s%s[SERVER] %sFile watcher thread stopped%s\n", 
+                   BOLD, COLOR_BLUE, COLOR_GREEN, COLOR_RESET);
         }
         watcher_thread = 0;
     }
     
     if (monitor_thread != 0) {
+        printf("%s%s[SERVER] %sStopping WebSocket monitor thread...%s\n", 
+              BOLD, COLOR_BLUE, COLOR_CYAN, COLOR_RESET);
         int cancel_result = pthread_cancel(monitor_thread);
         if (cancel_result != 0) {
-            fprintf(stderr, "Warning: Failed to cancel WebSocket monitor thread (error %d)\n", cancel_result);
+            fprintf(stderr, "%s%s[ERROR] %sFailed to cancel WebSocket monitor thread (error %d)%s\n", 
+                    BOLD, COLOR_RED, COLOR_RESET, cancel_result, COLOR_RESET);
         }
         int join_result = pthread_join(monitor_thread, NULL);
         if (join_result != 0) {
-            fprintf(stderr, "Warning: Failed to join WebSocket monitor thread (error %d)\n", join_result);
+            fprintf(stderr, "%s%s[ERROR] %sFailed to join WebSocket monitor thread (error %d)%s\n", 
+                    BOLD, COLOR_RED, COLOR_RESET, join_result, COLOR_RESET);
             pthread_detach(monitor_thread);
         } else {
-            printf("WebSocket monitor thread stopped\n");
+            printf("%s%s[SERVER] %sWebSocket monitor thread stopped%s\n", 
+                   BOLD, COLOR_BLUE, COLOR_GREEN, COLOR_RESET);
         }
         monitor_thread = 0;
     }
@@ -127,13 +201,10 @@ void cleanup_resources() {
         file_mutex_ptr = NULL;
     }
     
-    if (ws_clients) {
-        free_ws_clients(ws_clients);
-        ws_clients = NULL;
-    }
-    
-    printf("Cleanup complete\n");
-    cleanup_in_progress = 0;
+    printf("%s%s[SERVER] %s%sCleanup complete%s\n", 
+           BOLD, COLOR_BLUE, BOLD, COLOR_GREEN, COLOR_RESET);
+    cleanup_running = 0;
+    shutdown_in_progress = 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -153,11 +224,12 @@ int main(int argc, char *argv[]) {
                     port = custom_port;
                     i++;
                 } else {
-                    fprintf(stderr, "Invalid port number. Using default port %d\n", PORT);
+                    fprintf(stderr, "%s%s[CONFIG] %sInvalid port number. Using default port %d%s\n", 
+                            BOLD, COLOR_YELLOW, COLOR_RESET, PORT, COLOR_RESET);
                 }
             }
         } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
-            printf("Usage: %s [OPTIONS]\n", argv[0]);
+            printf("%s%s[HELP]%s Usage: %s [OPTIONS]\n", BOLD, COLOR_BLUE, COLOR_RESET, argv[0]);
             printf("Options:\n");
             printf("  -p, --port PORT    Specify port number (default: %d)\n", PORT);
             printf("  -h, --help         Display this help message\n");
@@ -165,33 +237,40 @@ int main(int argc, char *argv[]) {
         }
     }
     
-    signal(SIGINT, signal_handler);
-    signal(SIGTERM, signal_handler);
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = signal_handler;
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
     signal(SIGPIPE, SIG_IGN);
     
     ws_clients = init_ws_clients();
     if (!ws_clients) {
-        fprintf(stderr, "Failed to initialize WebSocket clients\n");
+        fprintf(stderr, "%s%s[ERROR] %sFailed to initialize WebSocket clients%s\n", 
+                BOLD, COLOR_RED, COLOR_RESET, COLOR_RESET);
         cleanup_resources();
         return EXIT_FAILURE;
     }
 
     if (init_file_watcher(HTML_DIR, &file_changed, &file_mutex) != 0) {
-        fprintf(stderr, "Failed to initialize file watcher\n");
+        fprintf(stderr, "%s%s[ERROR] %sFailed to initialize file watcher%s\n", 
+                BOLD, COLOR_RED, COLOR_RESET, COLOR_RESET);
         cleanup_resources();
         return EXIT_FAILURE;
     }
 
     watcher_thread = start_file_watcher(HTML_DIR, &file_changed, &file_mutex);
     if (watcher_thread == 0) {
-        fprintf(stderr, "Failed to start file watcher thread\n");
+        fprintf(stderr, "%s%s[ERROR] %sFailed to start file watcher thread%s\n", 
+                BOLD, COLOR_RED, COLOR_RESET, COLOR_RESET);
         cleanup_resources();
         return EXIT_FAILURE;
     }
     
     monitor_args = malloc(sizeof(ws_monitor_args_t));
     if (!monitor_args) {
-        perror("Failed to allocate memory for WebSocket monitor args");
+        fprintf(stderr, "%s%s[ERROR] %sFailed to allocate memory for WebSocket monitor: %s%s\n", 
+                BOLD, COLOR_RED, COLOR_RESET, strerror(errno), COLOR_RESET);
         cleanup_resources();
         return EXIT_FAILURE;
     }
@@ -199,35 +278,57 @@ int main(int argc, char *argv[]) {
     monitor_args->clients = ws_clients;
     monitor_args->file_changed = &file_changed;
     monitor_args->mutex = &file_mutex;
-    
     if (pthread_create(&monitor_thread, NULL, ws_monitor_thread, monitor_args) != 0) {
-        perror("Failed to create WebSocket monitor thread");
+        fprintf(stderr, "%s%s[ERROR] %sFailed to create WebSocket monitor thread: %s%s\n", 
+                BOLD, COLOR_RED, COLOR_RESET, strerror(errno), COLOR_RESET);
         cleanup_resources();
         return EXIT_FAILURE;
     }
+
 
     memset(&address, 0, sizeof(address));
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(port);
-    
     server_fd = initialize_server(&address);
     if (server_fd == -1) {
         cleanup_resources();
         return EXIT_FAILURE;
     }
 
-    printf("Server listening on port: %d\n", port);
-    printf("Hot reload enabled, watching directory: %s\n", HTML_DIR);
-    printf("Press Ctrl+C to stop the server\n");
+    int opt = 1;
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        fprintf(stderr, "%s%s[WARNING] %sError setting SO_REUSEADDR option: %s%s\n", 
+                BOLD, COLOR_YELLOW, COLOR_RESET, strerror(errno), COLOR_RESET);
+    }
+    
+    printf("\n");
+    printf("%s%s┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
+    printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
+    printf("%s%s┃  %sS E R V E R   S T A R T E D   %s               ┃%s\n", BOLD, COLOR_GREEN, COLOR_WHITE, COLOR_GREEN, COLOR_RESET);
+    printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
+    printf("%s%s┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
+    printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
+    printf("%s%s┃  %sPORT:%s %-37d  ┃%s\n", BOLD, COLOR_GREEN, COLOR_YELLOW, COLOR_CYAN, port, COLOR_RESET);
+    printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
+    printf("%s%s┃  %sDIR:%s %-38s  ┃%s\n", BOLD, COLOR_GREEN, COLOR_YELLOW, COLOR_CYAN, HTML_DIR, COLOR_RESET);
+    printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
+    printf("%s%s┃  %sHOT RELOAD:%s %-31s  ┃%s\n", BOLD, COLOR_GREEN, COLOR_YELLOW, COLOR_CYAN, "ENABLED", COLOR_RESET);
+    printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
+    printf("%s%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
+    printf("\n");
+    printf("%s%s[SERVER] %sPress Ctrl+C to stop the server%s\n", BOLD, COLOR_BLUE, COLOR_RESET, COLOR_RESET);
 
     fd_set read_fds;
     struct timeval timeout;
     int max_fd = server_fd;
+    time_t last_ping_time = 0;
+    const int PING_INTERVAL_MS = 5000;
 
     while (server_running) {
         if (!server_running) {
-            printf("Shutdown signal received, exiting main loop...\n");
+            printf("%s%s[SERVER] %sShutdown signal received, exiting main loop...%s\n", 
+                   BOLD, COLOR_BLUE, COLOR_YELLOW, COLOR_RESET);
             break;
         }
         
@@ -236,6 +337,7 @@ int main(int argc, char *argv[]) {
         timeout.tv_sec = 0; 
         timeout.tv_usec = 100000;
         int activity = select(max_fd + 1, &read_fds, NULL, NULL, &timeout);
+        
         if (!server_running) {
             break;
         }
@@ -247,20 +349,28 @@ int main(int argc, char *argv[]) {
                 }
                 continue;
             }
-            perror("Select error");
+            fprintf(stderr, "%s%s[ERROR] %sSelect error: %s%s\n", 
+                    BOLD, COLOR_RED, COLOR_RESET, strerror(errno), COLOR_RESET);
             break;
         }
-        if (ws_clients) {
+        
+        time_t current_time = time(NULL);
+        if (ws_clients && server_running && ws_clients->count > 0 && 
+            difftime(current_time, last_ping_time) * 1000 >= PING_INTERVAL_MS) {
             broadcast_to_ws_clients(ws_clients, "ping");
+            last_ping_time = current_time;
         }
-        if (activity > 0 && FD_ISSET(server_fd, &read_fds)) {
+        
+        if (activity > 0 && FD_ISSET(server_fd, &read_fds) && server_running) {
             if ((new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     continue;
                 }
-                perror("Connection not accepted!");
+                fprintf(stderr, "%s%s[ERROR] %sConnection not accepted: %s%s\n", 
+                        BOLD, COLOR_RED, COLOR_RESET, strerror(errno), COLOR_RESET);
                 continue;
             }
+            
             char buffer[BUFFER_SIZE] = {0};
             ssize_t bytes_read = recv(new_socket, buffer, BUFFER_SIZE, MSG_PEEK);
             if (bytes_read > 0) {
@@ -275,11 +385,14 @@ int main(int argc, char *argv[]) {
             }
         }
     }
+    
+
     if (server_fd != -1) {
         close(server_fd);
+        server_fd = -1;
     }
-    cleanup_resources();
-    
-    printf("Server shut down gracefully\n");
+    cleanup_resources();  
+    printf("%s%s[SERVER] %s%sServer shut down gracefully%s\n", 
+           BOLD, COLOR_BLUE, BOLD, COLOR_GREEN, COLOR_RESET);
     return 0;
 }
