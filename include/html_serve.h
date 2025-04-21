@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Function to read an HTML file and return its contents
 char* serve_html(const char* filename);
+char* inject_hot_reload_js(char* html_content);
 
 #endif

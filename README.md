@@ -2,6 +2,13 @@
 
 This project is a simple TCP server written in C, using socket programming concepts. It listens on a specified port, accepts client connections, and serves dynamic HTML content based on incoming requests using a templating system that supports dynamic values, if-else conditions, and loops. The code is organized into multiple files with CMake as the build system.
 
+## Features
+
+- TCP socket server implementation
+- HTML templating system with dynamic values, conditions, and loops
+- **Hot Reloading**: Automatic browser refresh when HTML files are modified
+- WebSocket implementation for real-time client-server communication
+
 ## Project Structure
 
 ```
@@ -12,13 +19,17 @@ project/
 │   ├── html_serve.h           # Header for serve_html function
 │   ├── request_handler.h      # Header for handle_client function
 │   ├── template.h             # Header for template processing functions
-│   └── socket_utils.h         # Header for socket utility functions
+│   ├── socket_utils.h         # Header for socket utility functions
+│   ├── file_watcher.h         # Header for file watching functionality
+│   └── websocket.h            # Header for WebSocket functionality
 ├── src/
 │   ├── server.c               # Main server program
 │   ├── html_serve.c           # serve_html function
 │   ├── request_handler.c      # handle_client function
 │   ├── template.c             # Template processing functions
-│   └── socket_utils.c         # Utility functions for socket operations
+│   ├── socket_utils.c         # Utility functions for socket operations
+│   ├── file_watcher.c         # File watcher implementation
+│   └── websocket.c            # WebSocket implementation
 └── README.md                  # Project documentation
 ```
 
@@ -28,28 +39,34 @@ project/
 - **`request_handler.c`**: Manages client requests by processing incoming HTTP requests and serving appropriate responses. Contains the `handle_client` function.
 - **`template.c`**: Implements template processing functions to support dynamic values, if-else conditions, and loops in HTML content.
 - **`socket_utils.c`**: Includes utility functions for socket initialization and client data handling. Contains the `initialize_server` and `read_client_data` functions.
-- **`server.h`**: Declares main server-related constants and functions.
-- **`html_serve.h`**: Declares the function used to read and serve HTML files.
-- **`request_handler.h`**: Declares the function to handle client requests.
-- **`template.h`**: Declares functions for processing templates with dynamic content.
-- **`socket_utils.h`**: Declares utility functions for initializing sockets and reading client data.
+- **`file_watcher.c`**: Implements the file watcher functionality for hot reloading.
+- **`websocket.c`**: Implements WebSocket protocol for real-time client-server communication.
 
 ## Prerequisites
 
 - **CMake** (version 3.10 or higher)
 - **GCC** or another compatible C compiler
+- **OpenSSL** development libraries
 - **Linux** or **WSL** (Windows Subsystem for Linux) recommended for running this server
 
 ## Setup Instructions
 
-### 1. Clone the Repository
+### 1. Install Dependencies
+
+```bash
+# On Debian/Ubuntu
+sudo apt update
+sudo apt install build-essential cmake libssl-dev
+```
+
+### 2. Clone the Repository
 
 ```bash
 git clone <repository_url>
 cd project
 ```
 
-### 2. Build the Project
+### 3. Build the Project
 
 1. Create a `build` directory and navigate into it:
    ```bash
@@ -68,15 +85,33 @@ cd project
 
 This will create an executable file named `server` inside a `bin` directory under the `build` folder.
 
-### 3. Run the Server
+### 4. Run the Server
 
 After building, you can start the server as follows:
 
 ```bash
-valgrind --leak-check=full ./bin/server 
+./bin/server
 ```
 
 The server will listen on port `8080` (default setting) and process incoming client requests.
+
+If port 8080 is already in use, you can specify a different port using the `--port` or `-p` option:
+
+```bash
+./bin/server --port 8081
+```
+
+This will start the server on port 8081 instead of the default port.
+
+## Hot Reload Feature
+
+The server includes a hot reload feature that automatically refreshes connected browsers when HTML files are modified:
+
+1. The server watches the `html` directory for any changes to HTML files
+2. When a file is modified, the server notifies all connected clients via WebSockets
+3. The client-side JavaScript (injected into each HTML page) receives the notification and reloads the page
+
+This allows for a smoother development experience as you can see your changes immediately without manually refreshing the browser.
 
 ## Template Features
 
@@ -151,13 +186,14 @@ To send a request to the server, you can use a web browser or a tool like `curl`
 
 If you encounter errors:
 1. Ensure that no other process is using port `8080`.
-2. Verify that CMake and GCC are correctly installed.
+2. Verify that CMake, GCC, and OpenSSL are correctly installed.
 3. Use the command `netstat -tuln | grep 8080` to check if the port is occupied.
 
 ## Acknowledgments
 
 - [CMake](https://cmake.org/) - Cross-platform build system
 - [Beej's Guide to Network Programming](https://beej.us/guide/bgnet/) - A great resource for learning socket programming
+- [RFC 6455](https://tools.ietf.org/html/rfc6455) - The WebSocket Protocol
 
 ---
 

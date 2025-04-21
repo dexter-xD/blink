@@ -1,7 +1,8 @@
 #include "template.h"
 
-// Function to replace placeholders in the template
 char* replace_placeholders(char* result, const char** keys, const char** values, int num_pairs) {
+    if (!result) return NULL;
+
     for (int i = 0; i < num_pairs; i++) {
         char placeholder[64];
         snprintf(placeholder, sizeof(placeholder), "{{%s}}", keys[i]);
@@ -11,28 +12,25 @@ char* replace_placeholders(char* result, const char** keys, const char** values,
             size_t len_before = position - result;
             size_t len_key = strlen(placeholder);
             size_t len_value = strlen(values[i]);
-
-            // Allocate new result memory
             char* new_result = malloc(len_before + len_value + strlen(position + len_key) + 1);
             if (!new_result) {
                 perror("Memory allocation failed");
-                return NULL;
+                return result;
             }
-
-            // Copy parts into the new result
             strncpy(new_result, result, len_before);
             strcpy(new_result + len_before, values[i]);
             strcpy(new_result + len_before + len_value, position + len_key);
 
-            free(result); // Free old result
-            result = new_result; // Point to new result
+            free(result);
+            result = new_result;
         }
     }
     return result;
 }
 
-// Function to handle if-else conditions in the template
 char* process_if_else(char* result, const char** keys, const char** values, int num_pairs) {
+    if (!result) return NULL;
+
     for (int i = 0; i < num_pairs; i++) {
         char condition[64];
         snprintf(condition, sizeof(condition), "{%% if %s %%}", keys[i]);
@@ -52,8 +50,7 @@ char* process_if_else(char* result, const char** keys, const char** values, int 
                     perror("Memory allocation failed for if-else content");
                     free(content_if);
                     free(content_else);
-                    free(result);
-                    return NULL;
+                    return result;
                 }
 
                 char* replacement_content = strlen(values[i]) > 0 ? content_if : content_else;
@@ -65,31 +62,24 @@ char* process_if_else(char* result, const char** keys, const char** values, int 
                     perror("Memory allocation failed for new result");
                     free(content_if);
                     free(content_else);
-                    free(result);
-                    return NULL;
+                    return result;
                 }
-
-                // Copy the new result
                 strncpy(new_result, result, len_before);
                 strcpy(new_result + len_before, replacement_content);
                 strcpy(new_result + len_before + strlen(replacement_content), endif_position + strlen("{% endif %}"));
-
-                free(result); // Free old result
-                result = new_result; // Point to new result
-
-                free(content_if); // Free content if
-                free(content_else); // Free content else
+                free(result); 
+                result = new_result; 
+                free(content_if); 
+                free(content_else); 
             }
-            else {
-                break; // If the end of the block isn't found
-            }
+            else {break;}
         }
     }
     return result;
 }
 
-// Function to process loops in the template
 char* process_loops(char* result, const char* loop_key, const char** loop_values, int loop_count) {
+    if (!result) return NULL;
     char loop_start[64];
     snprintf(loop_start, sizeof(loop_start), "{%% for %s in items %%}", loop_key);
     char* loop_position;
@@ -101,64 +91,58 @@ char* process_loops(char* result, const char* loop_key, const char** loop_values
         size_t len_before = loop_position - result;
         size_t len_after = strlen(end_loop_position + strlen("{% endfor %}"));
         size_t loop_content_length = end_loop_position - (loop_position + strlen(loop_start));
-
-        // Prepare to create the new result string with loop content
         char* loop_content = strndup(loop_position + strlen(loop_start), loop_content_length);
         if (!loop_content) {
             perror("Memory allocation failed for loop content");
-            free(result);
-            return NULL;
+            return result;
         }
-
-        // Allocate memory for the final result
-        char* new_result = malloc(len_before + (loop_content_length + strlen(loop_content)) * loop_count + len_after + 1);
+        size_t loop_expanded_size = loop_count * (loop_content_length + 100);
+        char* new_result = malloc(len_before + loop_expanded_size + len_after + 1);
         if (!new_result) {
             perror("Memory allocation failed for new result");
             free(loop_content);
-            free(result);
-            return NULL;
+            return result; 
         }
-
-        // Copy the content before the loop
         strncpy(new_result, result, len_before);
-
-        // Process loop values
+        new_result[len_before] = '\0';
+        size_t current_position = len_before;
         for (int i = 0; i < loop_count; i++) {
-            // Replace the placeholder with the current loop value
-            char item_placeholder[64];
-            snprintf(item_placeholder, sizeof(item_placeholder), "{{%s}}", loop_key);
-            char* loop_result = replace_placeholders(loop_content, (const char**)&loop_key, (const char**)&loop_values[i], 1);
-            if (loop_result) {
-                strcpy(new_result + len_before, loop_result);
-                len_before += strlen(loop_result);
-                free(loop_result);
+            const char* keys[] = {loop_key};
+            const char* values[] = {loop_values[i]};
+            char* loop_item_content = strdup(loop_content);
+            if (!loop_item_content) {
+                perror("Memory allocation failed for loop item content");
+                free(loop_content);
+                free(new_result);
+                return result;
             }
+            loop_item_content = replace_placeholders(loop_item_content, keys, values, 1);
+            strcpy(new_result + current_position, loop_item_content);
+            current_position += strlen(loop_item_content);
+            free(loop_item_content);
         }
+        strcpy(new_result + current_position, end_loop_position + strlen("{% endfor %}"));
 
-        // Copy the content after the loop
-        strcpy(new_result + len_before, end_loop_position + strlen("{% endfor %}"));
-
-        free(loop_content); // Free loop content
-        free(result); // Free old result
-        result = new_result; // Point to new result
+        free(loop_content); 
+        free(result); 
+        result = new_result;
     }
     return result;
 }
 
-// Main template processing function
 char* process_template(const char* template, const char** keys, const char** values, int num_pairs, const char* loop_key, const char** loop_values, int loop_count) {
-    char* result = strdup(template);  // Make a copy of the template
+    if (!template) return NULL;
+    char* result = strdup(template);
     if (!result) {
         perror("Failed to allocate memory for template processing");
         return NULL;
     }
-
-    // Replace placeholders
-    result = replace_placeholders(result, keys, values, num_pairs);
-    // Handle if-else conditions
-    result = process_if_else(result, keys, values, num_pairs);
-    // Process loops
-    result = process_loops(result, loop_key, loop_values, loop_count);
+    char* temp = replace_placeholders(result, keys, values, num_pairs);
+    if (temp) result = temp;
+    temp = process_if_else(result, keys, values, num_pairs);
+    if (temp) result = temp;
+    temp = process_loops(result, loop_key, loop_values, loop_count);
+    if (temp) result = temp;
 
     return result;
 }

@@ -5,10 +5,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Template Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        ul {
+            background-color: #f8f9fa;
+            padding: 15px 30px;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Hello {{user}}!</h1>
+    <h1>Hello world{{user}}!</h1>
 
     {% if is_logged_in %}
     <p>Welcome back, {{user}}! We're glad to see you again.</p>
