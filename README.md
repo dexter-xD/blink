@@ -47,7 +47,7 @@ project/
 - **CMake** (version 3.10 or higher)
 - **GCC** or another compatible C compiler
 - **OpenSSL** development libraries
-- **Linux** or **WSL** (Windows Subsystem for Linux) recommended for running this server
+- **Linux**, **macOS**, or **WSL** (Windows Subsystem for Linux) supported for running this server
 
 ## Setup Instructions
 
@@ -57,6 +57,9 @@ project/
 # On Debian/Ubuntu
 sudo apt update
 sudo apt install build-essential cmake libssl-dev
+
+# On macOS using Homebrew
+brew install cmake openssl
 ```
 
 ### 2. Clone the Repository
@@ -102,6 +105,16 @@ If port 8080 is already in use, you can specify a different port using the `--po
 ```
 
 This will start the server on port 8081 instead of the default port.
+
+### macOS-Specific Notes
+
+When running on macOS, the following modifications have been made to ensure compatibility:
+
+1. The file watcher implementation uses polling instead of Linux's inotify API
+2. Socket options are configured differently to be compatible with macOS networking APIs
+3. Cross-platform endian handling for WebSocket implementation
+
+These changes ensure the server runs properly on macOS while maintaining Linux compatibility.
 
 ## Hot Reload Feature
 

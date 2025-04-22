@@ -109,7 +109,7 @@ void* ws_monitor_thread(void* args) {
         pthread_mutex_unlock(monitor_args->mutex);
         
         if (should_notify) {
-            usleep(RELOAD_DELAY_MS * 1000);ts
+            usleep(RELOAD_DELAY_MS * 1000);
             printf("%s%s[HOT RELOAD] %sNotifying %s%d%s client(s) to reload%s\n", 
                    BOLD, COLOR_MAGENTA, COLOR_RESET, 
                    COLOR_YELLOW, monitor_args->clients->count, COLOR_RESET, COLOR_RESET);

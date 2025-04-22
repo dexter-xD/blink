@@ -7,7 +7,9 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#ifdef __linux__
 #include <asm-generic/socket.h>
+#endif
 
 #define PORT 8080
 #define BUFFER_SIZE 1024

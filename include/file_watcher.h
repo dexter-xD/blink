@@ -1,13 +1,18 @@
 #ifndef FILE_WATCHER_H
 #define FILE_WATCHER_H
 
-#include <sys/inotify.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <time.h>
 
-#define EVENT_SIZE (sizeof(struct inotify_event))
-#define BUF_LEN (1024 * (EVENT_SIZE + 16))
+#ifdef __linux__
+    #include <sys/inotify.h>
+    #define EVENT_SIZE (sizeof(struct inotify_event))
+    #define BUF_LEN (1024 * (EVENT_SIZE + 16))
+#else
+    // macOS and other non-Linux platforms
+    #define BUF_LEN 4096
+#endif
 
 typedef struct {
     char* path;

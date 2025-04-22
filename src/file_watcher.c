@@ -209,32 +209,35 @@ static void rescan_directory_if_needed(const char* directory, html_files_t* file
 
 void* watch_files(void* args) {
     watcher_args_t* watcher_args = (watcher_args_t*)args;
-    int fd, wd;
     char buffer[BUF_LEN];
     
     time_t last_notification_time = 0;
     const int DEBOUNCE_TIME_MS = 300;
+    
+#ifdef __linux__
+    int fd, wd;
     fd = inotify_init();
     if (fd < 0) {
-        fprintf(stderr, "%s%s[ERROR] %sinotify_init failed: %s%s\n", 
+        fprintf(stderr, "%s%s[ERROR] %sinotify_init failed: %s%s\n",
                 BOLD, COLOR_RED, COLOR_RESET, strerror(errno), COLOR_RESET);
         free(watcher_args->directory);
         free(watcher_args);
         return NULL;
     }
     
-    wd = inotify_add_watch(fd, watcher_args->directory, 
-                          IN_MODIFY | IN_CREATE | IN_CLOSE_WRITE | IN_MOVED_TO | IN_ATTRIB);
+    wd = inotify_add_watch(fd, watcher_args->directory,
+                           IN_MODIFY | IN_CREATE | IN_CLOSE_WRITE | IN_MOVED_TO | IN_ATTRIB);
     if (wd < 0) {
-        fprintf(stderr, "%s%s[ERROR] %sinotify_add_watch failed: %s%s\n", 
+        fprintf(stderr, "%s%s[ERROR] %sinotify_add_watch failed: %s%s\n",
                 BOLD, COLOR_RED, COLOR_RESET, strerror(errno), COLOR_RESET);
         close(fd);
         free(watcher_args->directory);
         free(watcher_args);
         return NULL;
     }
+#endif
     
-    printf("%s%s[FILE WATCHER] %sActive - watching directory: %s%s%s\n", 
+    printf("%s%s[FILE WATCHER] %sActive - watching directory: %s%s%s\n",
            BOLD, COLOR_BLUE, COLOR_GREEN, COLOR_CYAN, watcher_args->directory, COLOR_RESET);
     
     while (1) {
@@ -243,9 +246,10 @@ void* watch_files(void* args) {
             change_detected = true;
         }
         
+#ifdef __linux__
         fd_set read_fds;
         FD_ZERO(&read_fds);
-        FD_SET(fd, &read_fds);       
+        FD_SET(fd, &read_fds);
         struct timeval tv;
         tv.tv_sec = 0;
         tv.tv_usec = 100000;
@@ -262,11 +266,11 @@ void* watch_files(void* args) {
                     if (event->len > 0) {
                         char* dot = strrchr(event->name, '.');
                         if (dot && (strcmp(dot, ".html") == 0)) {
-                            printf("%s%s[FILE WATCHER] %sEvent detected: %s%s%s (mask: 0x%08x)\n", 
+                            printf("%s%s[FILE WATCHER] %sEvent detected: %s%s%s (mask: 0x%08x)\n",
                                    BOLD, COLOR_BLUE, COLOR_RESET, COLOR_CYAN, event->name, COLOR_RESET, event->mask);
                             change_detected = true;
                             char full_path[512];
-                            snprintf(full_path, sizeof(full_path), "%s/%s", 
+                            snprintf(full_path, sizeof(full_path), "%s/%s",
                                      watcher_args->directory, event->name);
                             add_html_file(html_files, full_path);
                         }
@@ -276,9 +280,13 @@ void* watch_files(void* args) {
                 }
             }
         } else if (ret < 0 && errno != EINTR) {
-            fprintf(stderr, "%s%s[FILE WATCHER] %sSelect error: %s%s\n", 
+            fprintf(stderr, "%s%s[FILE WATCHER] %sSelect error: %s%s\n",
                     BOLD, COLOR_RED, COLOR_RESET, strerror(errno), COLOR_RESET);
         }
+#else
+        // On macOS and other platforms, we rely on polling with check_all_files_for_changes
+        // which was already called above
+#endif
         
         rescan_directory_if_needed(watcher_args->directory, html_files);
         if (change_detected) {
@@ -291,29 +299,33 @@ void* watch_files(void* args) {
                 pthread_mutex_unlock(watcher_args->mutex);
                 
                 if (!already_signaled) {
-                    usleep(100000);                    
+                    usleep(100000);
                     pthread_mutex_lock(watcher_args->mutex);
                     *(watcher_args->file_changed) = true;
-                    pthread_mutex_unlock(watcher_args->mutex);                   
-                    printf("%s%s[FILE WATCHER] %sSignaled main thread about file changes%s\n", 
+                    pthread_mutex_unlock(watcher_args->mutex);
+                    printf("%s%s[FILE WATCHER] %sSignaled main thread about file changes%s\n",
                            BOLD, COLOR_BLUE, COLOR_YELLOW, COLOR_RESET);
                     last_notification_time = current_time;
                 } else {
-                    printf("%s%s[FILE WATCHER] %sSkipping notification - one already pending%s\n", 
+                    printf("%s%s[FILE WATCHER] %sSkipping notification - one already pending%s\n",
                            BOLD, COLOR_BLUE, COLOR_CYAN, COLOR_RESET);
                 }
             } else {
-                printf("%s%s[FILE WATCHER] %sDebouncing - %d ms since last notification%s\n", 
+                printf("%s%s[FILE WATCHER] %sDebouncing - %d ms since last notification%s\n",
                        BOLD, COLOR_BLUE, COLOR_CYAN, (int)ms_since_last, COLOR_RESET);
             }
         }
-        usleep(50000); 
+        usleep(50000);
     }
+    
+#ifdef __linux__
     inotify_rm_watch(fd, wd);
     close(fd);
+#endif
+
     free(watcher_args->directory);
     free(watcher_args);
     free_html_files(html_files);
     
     return NULL;
-} 
+}
