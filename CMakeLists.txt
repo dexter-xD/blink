@@ -24,3 +24,11 @@ add_executable(server
 
 # Link with required libraries
 target_link_libraries(server ${OPENSSL_LIBRARIES} pthread)
+
+# Copy www directory to build directory
+add_custom_command(
+    TARGET server POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/www ${CMAKE_BINARY_DIR}/bin/www
+    COMMENT "Copying www directory to build directory"
+)

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+  TEMPLATE EXAMPLE: CONDITIONALS
+  This example demonstrates how to use conditional (if/else) logic in templates.
+-->
+
+<!-- Define variables for conditional tests -->
+<!-- template:var title="Conditionals Example" is_logged_in="1" is_admin="0" has_subscription="yes" status="active" empty_var="" -->
+
+<head>
+    <title>{{title}}</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            line-height: 1.6; 
+            background-color: #000;
+            color: #fff;
+        }
+        .example { 
+            border: 1px solid #333; 
+            padding: 15px; 
+            margin: 20px 0; 
+            background-color: #111;
+            border-radius: 5px;
+        }
+        .code { 
+            background: #222; 
+            padding: 10px; 
+            font-family: monospace;
+            border-radius: 3px;
+        }
+        .true { color: #2ecc71; }
+        .false { color: #e74c3c; }
+        
+        h1 {
+            color: #5D68F6;
+            text-align: center;
+        }
+        
+        h2, h3 {
+            color: #fff;
+        }
+        
+        .nav-bar {
+            background-color: #111;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            text-align: left;
+            display: flex;
+        }
+        
+        .nav-bar a {
+            color: white;
+            text-decoration: none;
+            margin-right: 15px;
+            padding: 8px 15px;
+            border-radius: 3px;
+        }
+        
+        .nav-bar a:hover {
+            background-color: #333;
+        }
+        
+        .nav-bar a.active {
+            background-color: #5D68F6;
+            font-weight: bold;
+        }
+        
+        .nav-back {
+            margin-left: auto;
+            background-color: #28a745;
+        }
+        
+        .nav-back:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{title}}</h1>
+    
+    <div class="nav-bar">
+        <a href="/variables">Variables</a>
+        <a href="/conditionals" class="active">Conditionals</a>
+        <a href="/loops">Loops</a>
+        <a href="/conditional-loops">Conditional Loops</a>
+        <a href="/" class="nav-back">Back to Home</a>
+    </div>
+    
+    <div class="example">
+        <h2>Basic If Statement</h2>
+        
+        <p class="true">User is logged in (value: {{is_logged_in}})</p>
+        
+        <p class="false">User is not an admin (value: {{is_admin}})</p>
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>Define condition variables:<br>
+            &lt;!-- template:var is_logged_in="1" is_admin="0" --&gt;</p>
+            
+            <p>Basic if statement:<br>
+            &#123;% if is_logged_in %&#125;<br>
+            &nbsp;&nbsp;User is logged in.<br>
+            &#123;% endif %&#125;</p>
+            
+            <p>If-else statement:<br>
+            &#123;% if is_admin %&#125;<br>
+            &nbsp;&nbsp;User is an admin.<br>
+            &#123;% else %&#125;<br>
+            &nbsp;&nbsp;User is not an admin.<br>
+            &#123;% endif %&#125;</p>
+        </div>
+    </div>
+    
+    <div class="example">
+        <h2>Truthy and Falsy Values</h2>
+        <p>The following values are considered "true":</p>
+        <ul>
+            <li>"1", "true", "yes", "y", "on" and any non-empty string not explicitly false</li>
+        </ul>
+        
+        <p>The following values are considered "false":</p>
+        <ul>
+            <li>"0", "false", "no", "n", "off" and empty strings</li>
+        </ul>
+        
+        <h3>Examples:</h3>
+        <ul>
+            <li class="true">has_subscription (value: "{{has_subscription}}") is TRUE</li>
+            
+            <li class="true">status (value: "{{status}}") is TRUE</li>
+            
+            <li class="false">empty_var (value: "{{empty_var}}") is FALSE</li>
+        </ul>
+    </div>
+    
+    <div class="example">
+        <h2>Nested Conditions</h2>
+        
+        <p class="true">User is logged in.</p>
+        <p class="false">User has regular privileges.</p>
+        <p class="true">User has an active subscription.</p>
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>You can nest conditions inside other conditions:<br>
+            &#123;% if is_logged_in %&#125;<br>
+            &nbsp;&nbsp;User is logged in.<br>
+            &nbsp;&nbsp;&#123;% if is_admin %&#125;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;User has admin privileges.<br>
+            &nbsp;&nbsp;&#123;% else %&#125;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;User has regular privileges.<br>
+            &nbsp;&nbsp;&#123;% endif %&#125;<br>
+            &#123;% endif %&#125;</p>
+        </div>
+    </div>
+</body>
+</html>

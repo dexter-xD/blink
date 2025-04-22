@@ -1,5 +1,6 @@
 #include "file_watcher.h"
 #include "websocket.h" 
+#include "request_handler.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +24,7 @@ static html_files_t* init_html_files() {
     html_files_t* files = malloc(sizeof(html_files_t));
     if (!files) return NULL;
     
-    files->capacity = 10;  // Initial capacity
+    files->capacity = 10; 
     files->count = 0;
     files->filenames = malloc(files->capacity * sizeof(char*));
     files->last_modified = malloc(files->capacity * sizeof(time_t));
@@ -97,6 +98,32 @@ static void scan_directory(const char* directory, html_files_t* files) {
     closedir(dir);
 }
 
+static void add_custom_html_file_if_exists(html_files_t* files) {
+    extern char* custom_html_file; 
+    
+    if (custom_html_file && *custom_html_file) {
+        struct stat st;
+        if (stat(custom_html_file, &st) == 0 && S_ISREG(st.st_mode)) {
+            bool already_watching = false;
+            for (int i = 0; i < files->count; i++) {
+                if (strcmp(files->filenames[i], custom_html_file) == 0) {
+                    already_watching = true;
+                    break;
+                }
+            }
+            
+            if (!already_watching) {
+                printf("%s%s[FILE WATCHER] %sAdding custom HTML file to watch: %s%s%s\n", 
+                       BOLD, COLOR_BLUE, COLOR_GREEN, COLOR_CYAN, custom_html_file, COLOR_RESET);
+                add_html_file(files, custom_html_file);
+            }
+        } else {
+            fprintf(stderr, "%s%s[WARNING] %sCustom HTML file not found or not accessible: %s%s\n", 
+                    BOLD, COLOR_YELLOW, COLOR_RESET, custom_html_file, COLOR_RESET);
+        }
+    }
+}
+
 static void free_html_files(html_files_t* files) {
     if (!files) return;
     
@@ -137,6 +164,8 @@ int init_file_watcher(const char* directory, bool* file_changed, pthread_mutex_t
     }
     
     scan_directory(directory, html_files);
+    
+    add_custom_html_file_if_exists(html_files);
     
     printf("%s%s[FILE WATCHER] %sInitialized for directory: %s%s%s (tracking %s%d%s HTML files)\n", 
            BOLD, COLOR_BLUE, COLOR_RESET, COLOR_CYAN, directory, COLOR_RESET, 
@@ -185,12 +214,29 @@ bool file_has_changed(const char* filename, time_t* last_modified) {
 static bool check_all_files_for_changes(html_files_t* files) {
     if (!files || files->count == 0) return false;
     
+    static char* last_changed_file = NULL;
+    static time_t last_change_time = 0;
+    time_t current_time = time(NULL);
+    const int SAME_FILE_DEBOUNCE_SECS = 5;
+    
     bool any_changed = false;
     for (int i = 0; i < files->count; i++) {
         if (file_has_changed(files->filenames[i], &files->last_modified[i])) {
-            printf("%s%s[FILE WATCHER] %sDetected change in file: %s%s%s\n", 
-                   BOLD, COLOR_BLUE, COLOR_YELLOW, COLOR_CYAN, 
-                   files->filenames[i], COLOR_RESET);
+            bool is_repeat = (last_changed_file && strcmp(files->filenames[i], last_changed_file) == 0);
+            bool within_debounce = (difftime(current_time, last_change_time) < SAME_FILE_DEBOUNCE_SECS);
+            
+            if (!is_repeat || !within_debounce) {
+                printf("%s%s[FILE WATCHER] %sDetected change in file: %s%s%s\n", 
+                       BOLD, COLOR_BLUE, COLOR_YELLOW, COLOR_CYAN, 
+                       files->filenames[i], COLOR_RESET);
+                
+                if (last_changed_file) {
+                    free(last_changed_file);
+                }
+                last_changed_file = strdup(files->filenames[i]);
+                last_change_time = current_time;
+            }
+            
             any_changed = true;
         }
     }
@@ -201,19 +247,26 @@ static bool check_all_files_for_changes(html_files_t* files) {
 static void rescan_directory_if_needed(const char* directory, html_files_t* files) {
     static time_t last_scan_time = 0;
     time_t current_time = time(NULL);
-    if (difftime(current_time, last_scan_time) > 10) {
+    
+    if (difftime(current_time, last_scan_time) > 30) {
+        printf("%s%s[FILE WATCHER] %sRescanning directory for new HTML files...%s\n", 
+               BOLD, COLOR_BLUE, COLOR_CYAN, COLOR_RESET);
+        
         scan_directory(directory, files);
+        add_custom_html_file_if_exists(files);
+        
         last_scan_time = current_time;
     }
 }
 
 void* watch_files(void* args) {
     watcher_args_t* watcher_args = (watcher_args_t*)args;
-    int fd, wd;
+    int fd, wd, custom_file_wd = -1;
     char buffer[BUF_LEN];
+    extern char* custom_html_file; 
     
     time_t last_notification_time = 0;
-    const int DEBOUNCE_TIME_MS = 300;
+    const int DEBOUNCE_TIME_MS = 1000;
     fd = inotify_init();
     if (fd < 0) {
         fprintf(stderr, "%s%s[ERROR] %sinotify_init failed: %s%s\n", 
@@ -232,6 +285,25 @@ void* watch_files(void* args) {
         free(watcher_args->directory);
         free(watcher_args);
         return NULL;
+    }
+    
+    if (custom_html_file && *custom_html_file) {
+        char* last_slash = strrchr(custom_html_file, '/');
+        if (last_slash) {
+            char custom_dir[512] = {0};
+            strncpy(custom_dir, custom_html_file, last_slash - custom_html_file);
+            custom_dir[last_slash - custom_html_file] = '\0';
+            
+            if (strcmp(custom_dir, watcher_args->directory) != 0) {
+                custom_file_wd = inotify_add_watch(fd, custom_dir, 
+                                  IN_MODIFY | IN_CREATE | IN_CLOSE_WRITE | IN_MOVED_TO | IN_ATTRIB);
+                
+                if (custom_file_wd >= 0) {
+                    printf("%s%s[FILE WATCHER] %sAdded watch for custom HTML file directory: %s%s%s\n", 
+                           BOLD, COLOR_BLUE, COLOR_GREEN, COLOR_CYAN, custom_dir, COLOR_RESET);
+                }
+            }
+        }
     }
     
     printf("%s%s[FILE WATCHER] %sActive - watching directory: %s%s%s\n", 
@@ -299,18 +371,31 @@ void* watch_files(void* args) {
                            BOLD, COLOR_BLUE, COLOR_YELLOW, COLOR_RESET);
                     last_notification_time = current_time;
                 } else {
-                    printf("%s%s[FILE WATCHER] %sSkipping notification - one already pending%s\n", 
-                           BOLD, COLOR_BLUE, COLOR_CYAN, COLOR_RESET);
+                    static time_t last_skip_message = 0;
+                    if (difftime(current_time, last_skip_message) > 5) {
+                        printf("%s%s[FILE WATCHER] %sSkipping notification - one already pending%s\n", 
+                               BOLD, COLOR_BLUE, COLOR_CYAN, COLOR_RESET);
+                        last_skip_message = current_time;
+                    }
                 }
             } else {
-                printf("%s%s[FILE WATCHER] %sDebouncing - %d ms since last notification%s\n", 
-                       BOLD, COLOR_BLUE, COLOR_CYAN, (int)ms_since_last, COLOR_RESET);
+                static time_t last_debounce_message = 0;
+                if (difftime(current_time, last_debounce_message) > 5) {
+                    printf("%s%s[FILE WATCHER] %sDebouncing - %d ms since last notification%s\n", 
+                           BOLD, COLOR_BLUE, COLOR_CYAN, (int)ms_since_last, COLOR_RESET);
+                    last_debounce_message = current_time;
+                }
             }
         }
-        usleep(50000); 
+        usleep(100000); 
+    }
+    
+    if (custom_file_wd >= 0) {
+        inotify_rm_watch(fd, custom_file_wd);
     }
     inotify_rm_watch(fd, wd);
     close(fd);
+    
     free(watcher_args->directory);
     free(watcher_args);
     free_html_files(html_files);

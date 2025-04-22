@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+  TEMPLATE EXAMPLE: CONDITIONAL LOOPS
+  This example demonstrates how to use loops with conditions to filter items.
+-->
+
+<!-- Define variables for the template -->
+<!-- template:var title="Conditional Loops Example" -->
+<!-- template:items 
+    "Apple|fruit|red|1.99|in stock" 
+    "Banana|fruit|yellow|0.99|in stock" 
+    "Carrot|vegetable|orange|1.49|in stock" 
+    "Broccoli|vegetable|green|2.99|limited" 
+    "Orange|fruit|orange|2.49|sold out" 
+    "Grapes|fruit|purple|3.99|in stock"
+    "Lettuce|vegetable|green|1.79|in stock"
+    "Strawberry|fruit|red|4.99|limited"
+    "Cucumber|vegetable|green|1.29|sold out"
+    "Blueberry|fruit|blue|5.99|in stock"
+-->
+
+<head>
+    <title>{{title}}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .example { border: 1px solid #ddd; padding: 15px; margin: 20px 0; }
+        .code { background: #f8f8f8; padding: 10px; font-family: monospace; white-space: pre-wrap; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .fruit { color: #e63946; }
+        .vegetable { color: #2a9d8f; }
+        .sold-out { background-color: #f8d7da; }
+        .limited { background-color: #fff3cd; }
+    </style>
+</head>
+<body>
+    <h1>{{title}}</h1>
+    
+    <div class="example">
+        <h2>Basic Conditional Loop</h2>
+        
+        <h3>Fruits Only:</h3>
+        <ul>
+            {% for item in items if item.1 == "fruit" %}
+            <li class="fruit">{{item.0}} - ${{item.3}}</li>
+            {% endfor %}
+        </ul>
+        
+        <h3>Vegetables Only:</h3>
+        <ul>
+            {% for item in items if item.1 == "vegetable" %}
+            <li class="vegetable">{{item.0}} - ${{item.3}}</li>
+            {% endfor %}
+        </ul>
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>Define items with categories and other properties:
+&lt;!-- template:items 
+    "Apple|fruit|red|1.99|in stock" 
+    "Banana|fruit|yellow|0.99|in stock" 
+    "Carrot|vegetable|orange|1.49|in stock" 
+    ...
+--&gt;</p>
+            
+            <p>Use conditional loops to filter by category:
+&#123;% for item in items if item.1 == "fruit" %&#125;
+    &lt;li&gt;&#123;&#123;item.0&#125;&#125; - $&#123;&#123;item.3&#125;&#125;&lt;/li&gt;
+&#123;% endfor %&#125;</p>
+        </div>
+    </div>
+    
+    <div class="example">
+        <h2>Multiple Filtering Conditions</h2>
+        
+        <h3>Red Items:</h3>
+        <ul>
+            {% for item in items if item.2 == "red" %}
+            <li>{{item.0}} ({{item.1}}) - ${{item.3}}</li>
+            {% endfor %}
+        </ul>
+        
+        <h3>Green Vegetables:</h3>
+        <ul>
+            {% for item in items if item.1 == "vegetable" if item.2 == "green" %}
+            <li class="vegetable">{{item.0}} - ${{item.3}}</li>
+            {% endfor %}
+        </ul>
+        
+        <p>Note: For more complex filtering, you might need to use multiple separate loops or enhance the template engine.</p>
+    </div>
+    
+    <div class="example">
+        <h2>Filtering with Inequality</h2>
+        
+        <h3>Items that are NOT vegetables:</h3>
+        <ul>
+            {% for item in items if item.1 != "vegetable" %}
+            <li>{{item.0}} ({{item.1}}) - ${{item.3}}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <div class="example">
+        <h2>Real-world Example: Product Availability</h2>
+        
+        <h3>Product Catalog:</h3>
+        <table>
+            <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Status</th>
+            </tr>
+            {% for item in items %}
+            <tr {% if item.4 == "sold out" %}class="sold-out"{% endif %}{% if item.4 == "limited" %}class="limited"{% endif %}>
+                <td>{{item.0}}</td>
+                <td>{{item.1}}</td>
+                <td>${{item.3}}</td>
+                <td>{{item.4}}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        
+        <h3>In Stock Items Only:</h3>
+        <ul>
+            {% for item in items if item.4 == "in stock" %}
+            <li>{{item.0}} - ${{item.3}}</li>
+            {% endfor %}
+        </ul>
+        
+        <h3>Limited or Sold Out Items:</h3>
+        <ul>
+            {% for item in items if item.4 != "in stock" %}
+            <li>{{item.0}} - {{item.4}}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <div class="example">
+        <h2>Advanced Filtering Example</h2>
+        
+        <h3>Premium Fruits (over $2):</h3>
+        <ul>
+            {% for item in items if item.1 == "fruit" %}
+                <!-- Note: You cannot directly compare numeric values in conditions -->
+                <!-- This is just a conceptual example, would require preprocessed data -->
+                <li class="fruit">{{item.0}} - ${{item.3}}</li>
+            {% endfor %}
+        </ul>
+        
+        <p>Note: The current template engine doesn't support numeric comparisons in conditions.
+        For more advanced filtering, preprocess your data or enhance the template engine.</p>
+    </div>
+</body>
+</html> 

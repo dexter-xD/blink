@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+  TEMPLATE EXAMPLE: LOOPS
+  This example demonstrates how to use loops to iterate through items.
+-->
+
+<!-- Define variables and items for the loops -->
+<!-- template:var title="Loops Example" -->
+<!-- template:items "Apple" "Banana" "Cherry" "Date" "Elderberry" -->
+
+<head>
+    <title>{{title}}</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            line-height: 1.6; 
+            background-color: #000;
+            color: #fff;
+        }
+        .example { 
+            border: 1px solid #333; 
+            padding: 15px; 
+            margin: 20px 0; 
+            background-color: #111;
+            border-radius: 5px;
+        }
+        .code { 
+            background: #222; 
+            padding: 10px; 
+            font-family: monospace;
+            border-radius: 3px;
+        }
+        li { margin-bottom: 5px; }
+        
+        h1 {
+            color: #5D68F6;
+            text-align: center;
+        }
+        
+        h2, h3, h4 {
+            color: #fff;
+        }
+        
+        .nav-bar {
+            background-color: #111;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            text-align: left;
+            display: flex;
+        }
+        
+        .nav-bar a {
+            color: white;
+            text-decoration: none;
+            margin-right: 15px;
+            padding: 8px 15px;
+            border-radius: 3px;
+        }
+        
+        .nav-bar a:hover {
+            background-color: #333;
+        }
+        
+        .nav-bar a.active {
+            background-color: #5D68F6;
+            font-weight: bold;
+        }
+        
+        .nav-back {
+            margin-left: auto;
+            background-color: #28a745;
+        }
+        
+        .nav-back:hover {
+            background-color: #218838;
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+        }
+        
+        table, th, td {
+            border: 1px solid #333;
+        }
+        
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #222;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #1a1a1a;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{title}}</h1>
+    
+    <div class="nav-bar">
+        <a href="/variables">Variables</a>
+        <a href="/conditionals">Conditionals</a>
+        <a href="/loops" class="active">Loops</a>
+        <a href="/conditional-loops">Conditional Loops</a>
+        <a href="/" class="nav-back">Back to Home</a>
+    </div>
+    
+    <div class="example">
+        <h2>Basic Loop</h2>
+        
+        <h3>Fruit List:</h3>
+        <ul>
+            {% for item in items %}
+            <li>{{item}}</li>
+            {% endfor %}
+        </ul>
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>Define loop items in an HTML comment:<br>
+            &lt;!-- template:items "Apple" "Banana" "Cherry" "Date" "Elderberry" --&gt;</p>
+            
+            <p>Basic loop syntax:<br>
+            &#123;% for item in items %&#125;<br>
+            &nbsp;&nbsp;&lt;li&gt;&#123;&#123;item&#125;&#125;&lt;/li&gt;<br>
+            &#123;% endfor %&#125;</p>
+        </div>
+    </div>
+    
+    <div class="example">
+        <h2>Loop with Index</h2>
+        
+        <h3>Numbered List:</h3>
+        <ol>
+            {% for item in items %}
+            <li>{{item}}</li>
+            {% endfor %}
+        </ol>
+        
+        <p>Note: The template engine doesn't directly support loop indices, but you can use ordered lists to achieve numbered items.</p>
+    </div>
+    
+    <div class="example">
+        <h2>Loops with Multi-part Items</h2>
+        
+        <!-- Define items with pipe-delimited fields -->
+        <!-- template:items "Apple|fruit|red|0.99" "Carrot|vegetable|orange|1.25" "Banana|fruit|yellow|0.79" "Broccoli|vegetable|green|1.50" "Orange|fruit|orange|1.29" -->
+        
+        <h3>Product List:</h3>
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Color</th>
+                <th>Price</th>
+            </tr>
+            {% for item in items %}
+            <tr>
+                <td>{{item.0}}</td>
+                <td>{{item.1}}</td>
+                <td>{{item.2}}</td>
+                <td>${{item.3}}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>Define items with pipe-delimited fields:<br>
+            &lt;!-- template:items "Apple|fruit|red|0.99" "Carrot|vegetable|orange|1.25" ... --&gt;</p>
+            
+            <p>Access individual parts with dot notation:<br>
+            &lt;td&gt;&#123;&#123;item.0&#125;&#125;&lt;/td&gt;<br>
+            &lt;td&gt;&#123;&#123;item.1&#125;&#125;&lt;/td&gt;<br>
+            &lt;td&gt;&#123;&#123;item.2&#125;&#125;&lt;/td&gt;<br>
+            &lt;td&gt;$&#123;&#123;item.3&#125;&#125;&lt;/td&gt;</p>
+        </div>
+    </div>
+    
+    <div class="example">
+        <h2>Nested Loops</h2>
+        
+        <!-- Define item categories -->
+        <!-- template:var cat1="Fruits" cat2="Vegetables" -->
+        <!-- template:items "Fruits|Apple,Banana,Orange" "Vegetables|Carrot,Broccoli,Spinach" -->
+        
+        <h3>Categorized List:</h3>
+        {% for item in items %}
+        <h4>{{item.0}}:</h4>
+        <ul>
+            <!-- Note: In a real template engine with more features, you might have a split function -->
+            <!-- For this demo, we're showing the concept, but it would require custom processing -->
+            <li>{{item.1}}</li>
+        </ul>
+        {% endfor %}
+        
+        <p>Note: The template engine doesn't support string splitting, but in a more advanced implementation, 
+        you could have nested loops iterating through comma-separated values.</p>
+    </div>
+</body>
+</html>

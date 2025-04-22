@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<!-- Basic template test page - simplified version -->
+<!-- template:var 
+  title="Template Test"
+  name="User"
+  logged_in="1"
+  admin="0"
+  subscription="yes"
+  count="3"
+-->
+
+<!-- template:items 
+  "Product A|Red|$10.99|In stock"
+  "Product B|Blue|$24.99|Out of stock"
+  "Product C|Green|$15.50|In stock"
+-->
+
+<head>
+  <meta charset="UTF-8">
+  <title>{{title}}</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      line-height: 1.5;
+    }
+    section {
+      margin-bottom: 30px;
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 5px;
+    }
+    h1, h2 { color: #2969b0; }
+    .true { color: green; font-weight: bold; }
+    .false { color: red; font-weight: bold; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+    .red { color: red; }
+    .blue { color: blue; }
+    .green { color: green; }
+  </style>
+</head>
+<body>
+  <h1>{{title}}</h1>
+  
+  <!-- VARIABLES -->
+  <section>
+    <h2>Basic Variables</h2>
+    <p>Welcome, {{name}}!</p>
+    <p>Logged in: {{logged_in}}</p>
+    <p>Admin: {{admin}}</p>
+    <p>Subscription: {{subscription}}</p>
+    <p>Count: {{count}}</p>
+  </section>
+  
+  <!-- CONDITIONALS -->
+  <section>
+    <h2>Simple Conditions</h2>
+    
+    {% if logged_in %}
+    <p class="true">User is logged in</p>
+    {% else %}
+    <p class="false">User is not logged in</p>
+    {% endif %}
+    
+    {% if admin %}
+    <p class="true">User is admin</p>
+    {% else %}
+    <p class="false">User is not admin</p>
+    {% endif %}
+    
+    {% if subscription %}
+    <p class="true">Has subscription</p>
+    {% else %}
+    <p class="false">No subscription</p>
+    {% endif %}
+  </section>
+  
+  <!-- LOOPS -->
+  <section>
+    <h2>Basic Loop</h2>
+    <ul>
+      {% for item in items %}
+      <li>{{item}}</li>
+      {% endfor %}
+    </ul>
+    
+    <h2>Loop with Fields</h2>
+    <table>
+      <tr>
+        <th>Product</th>
+        <th>Color</th>
+        <th>Price</th>
+        <th>Status</th>
+      </tr>
+      {% for item in items %}
+      <tr>
+        <td>{{item.0}}</td>
+        <td>{{item.1}}</td>
+        <td>{{item.2}}</td>
+        <td>{{item.3}}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </section>
+  
+  <!-- CONDITIONAL LOOPS -->
+  <section>
+    <h2>Conditional Loops</h2>
+    <p>Only "In stock" items:</p>
+    <ul>
+      {% for item in items if item.3 == "In stock" %}
+      <li>{{item.0}} ({{item.2}})</li>
+      {% endfor %}
+    </ul>
+  </section>
+</body>
+</html> 

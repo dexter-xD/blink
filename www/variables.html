@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- 
+  TEMPLATE EXAMPLE: VARIABLES
+  This example demonstrates how to define and use template variables.
+-->
+
+<!-- Define variables using the template:var comment -->
+<!-- template:var title="Variable Example" username="John Doe" company="Acme Corp" year="2023" -->
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <style>
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #171717;
+            --card-bg: #1c1c1c;
+            --accent-color: #5d5fef;
+            --accent-hover: #4a4ae0;
+            --text-primary: #f3f3f3;
+            --text-secondary: #b0b0b0;
+            --green: #2ed573;
+            --green-bg: rgba(46, 213, 115, 0.15);
+            --blue: #4f46e5;
+            --blue-bg: rgba(79, 70, 229, 0.15);
+            --code-bg: #252525;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0;
+        }
+        
+        header {
+            padding: 2rem 0 1rem;
+            text-align: center;
+        }
+        
+        .content {
+            flex: 1;
+            padding: 1rem 0 3rem;
+        }
+        
+        h1 {
+            color: var(--accent-color);
+            margin-bottom: 1.5rem;
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+        
+        h2 {
+            margin: 0 0 1rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        h3 {
+            margin: 1.5rem 0 0.8rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        
+        strong {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+        
+        /* Card styles */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .card-header {
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        /* Navigation */
+        .nav-bar {
+            background-color: var(--card-bg);
+            padding: 0.75rem 1rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .nav-bar a {
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            margin-right: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-bar a:hover {
+            background-color: rgba(79, 70, 229, 0.15);
+            color: var(--accent-color);
+        }
+        
+        .nav-bar a.active {
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: 500;
+        }
+        
+        .nav-back {
+            margin-left: auto;
+            background-color: rgba(46, 213, 115, 0.15);
+            color: var(--green) !important;
+        }
+        
+        .nav-back:hover {
+            background-color: rgba(46, 213, 115, 0.3) !important;
+        }
+        
+        /* Example boxes */
+        .example {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Code blocks */
+        .code {
+            background-color: var(--code-bg);
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-x: auto;
+        }
+        
+        .code p {
+            margin-bottom: 0.75rem;
+        }
+        
+        .code p:last-child {
+            margin-bottom: 0;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 1.5rem 0;
+            background-color: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-bar {
+                flex-wrap: wrap;
+            }
+            
+            .nav-back {
+                margin-left: 0;
+                margin-top: 0.5rem;
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>{{title}}</h1>
+        </header>
+        
+        <div class="content">
+            <div class="nav-bar">
+                <a href="/variables" class="active">Variables</a>
+                <a href="/conditionals">Conditionals</a>
+                <a href="/loops">Loops</a>
+                <a href="/conditional-loops">Conditional Loops</a>
+                <a href="/" class="nav-back">Back to Home</a>
+            </div>
+            
+            <div class="example">
+                <h2>Basic Variable Replacement</h2>
+                <p>Hello, my name is <strong>{{username}}</strong>.</p>
+                <p>I work at <strong>{{company}}</strong>.</p>
+                <p>Copyright © {{year}}</p>
+                
+                <h3>How it works:</h3>
+                <div class="code">
+                    <p>Define variables in HTML comments:<br>
+                    &lt;!-- template:var username="John Doe" company="Acme Corp" year="2023" --&gt;</p>
+                    
+                    <p>Then use them with double curly braces:<br>
+                    Hello, my name is <strong>&#123;&#123;username&#125;&#125;</strong>.</p>
+                </div>
+            </div>
+            
+            <div class="example">
+                <h2>Variable Concatenation</h2>
+                <p>{{username}} from {{company}}.</p>
+                <p>This is a {{title}} created in {{year}}.</p>
+                
+                <h3>How it works:</h3>
+                <div class="code">
+                    <p>Variables can be combined with regular text:<br>
+                    &#123;&#123;username&#125;&#125; from &#123;&#123;company&#125;&#125;.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="container">
+            Blink Template Engine - Variable Examples
+        </div>
+    </footer>
+</body>
+</html>

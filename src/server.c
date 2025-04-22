@@ -27,7 +27,7 @@ void cleanup_resources(void);
 void signal_handler(int signum) {
     if (shutdown_in_progress) {
         printf("\n%s%s[SERVER] %s%sForced shutdown - terminating immediately%s\n", 
-               BOLD, COLOR_RED, BOLD, COLOR_YELLOW, COLOR_RESET);
+                BOLD, COLOR_RED, BOLD, COLOR_YELLOW, COLOR_RESET);
         
         _exit(EXIT_FAILURE);
     }
@@ -215,6 +215,7 @@ int main(int argc, char *argv[]) {
     pthread_mutex_t file_mutex = PTHREAD_MUTEX_INITIALIZER;
     file_mutex_ptr = &file_mutex;
     int port = PORT; 
+    char* custom_html_file = NULL;
     
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--port") == 0) {
@@ -228,15 +229,33 @@ int main(int argc, char *argv[]) {
                             BOLD, COLOR_YELLOW, COLOR_RESET, PORT, COLOR_RESET);
                 }
             }
+        } else if (strcmp(argv[i], "-n") == 0 || strcmp(argv[i], "--no-templates") == 0) {
+            set_template_settings(false);
+            printf("%s%s[CONFIG] %sTemplate processing disabled%s\n", 
+                   BOLD, COLOR_YELLOW, COLOR_RESET, COLOR_RESET);
+        } else if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--serve") == 0) {
+            if (i + 1 < argc) {
+                custom_html_file = argv[i + 1];
+                set_custom_html_file(custom_html_file);
+                printf("%s%s[CONFIG] %sUsing custom HTML file: %s%s%s\n", 
+                       BOLD, COLOR_YELLOW, COLOR_RESET, COLOR_CYAN, custom_html_file, COLOR_RESET);
+                i++;
+            } else {
+                fprintf(stderr, "%s%s[CONFIG] %sNo file specified after -s/--serve option%s\n", 
+                        BOLD, COLOR_YELLOW, COLOR_RESET, COLOR_RESET);
+            }
         } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             printf("%s%s[HELP]%s Usage: %s [OPTIONS]\n", BOLD, COLOR_BLUE, COLOR_RESET, argv[0]);
             printf("Options:\n");
-            printf("  -p, --port PORT    Specify port number (default: %d)\n", PORT);
-            printf("  -h, --help         Display this help message\n");
+            printf("  -p, --port PORT      Specify port number (default: %d)\n", PORT);
+            printf("  -s, --serve FILE     Specify a custom HTML file to serve\n");
+            printf("  -n, --no-templates   Disable template processing\n");
+            printf("  -h, --help           Display this help message\n");
             return EXIT_SUCCESS;
         }
     }
     
+    set_server_port(port);   
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = signal_handler;
@@ -311,9 +330,9 @@ int main(int argc, char *argv[]) {
     printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
     printf("%s%s┃  %sPORT:%s %-37d  ┃%s\n", BOLD, COLOR_GREEN, COLOR_YELLOW, COLOR_CYAN, port, COLOR_RESET);
     printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
-    printf("%s%s┃  %sDIR:%s %-38s  ┃%s\n", BOLD, COLOR_GREEN, COLOR_YELLOW, COLOR_CYAN, HTML_DIR, COLOR_RESET);
-    printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
     printf("%s%s┃  %sHOT RELOAD:%s %-31s  ┃%s\n", BOLD, COLOR_GREEN, COLOR_YELLOW, COLOR_CYAN, "ENABLED", COLOR_RESET);
+    printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
+    printf("%s%s┃  %sTEMPLATES:%s %-32s  ┃%s\n", BOLD, COLOR_GREEN, COLOR_YELLOW, COLOR_CYAN, enable_templates ? "ENABLED" : "DISABLED", COLOR_RESET);
     printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
     printf("%s%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
     printf("\n");

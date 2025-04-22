@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+  TEMPLATE EXAMPLE: CONDITIONALS
+  This example demonstrates how to use conditional (if/else) logic in templates.
+-->
+
+<!-- Define variables for conditional tests -->
+<!-- template:var title="Conditionals Example" is_logged_in="1" is_admin="0" has_subscription="yes" status="active" empty_var="" -->
+
+<head>
+    <title>{{title}}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .example { border: 1px solid #ddd; padding: 15px; margin: 20px 0; }
+        .code { background: #f8f8f8; padding: 10px; font-family: monospace; }
+        .true { color: green; }
+        .false { color: red; }
+    </style>
+</head>
+<body>
+    <h1>{{title}}</h1>
+    
+    <div class="example">
+        <h2>Basic If Statement</h2>
+        
+        {% if is_logged_in %}
+        <p class="true">User is logged in.</p>
+        {% endif %}
+        
+        {% if is_admin %}
+        <p class="true">User is an admin.</p>
+        {% else %}
+        <p class="false">User is not an admin.</p>
+        {% endif %}
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>Define condition variables:<br>
+            &lt;!-- template:var is_logged_in="1" is_admin="0" --&gt;</p>
+            
+            <p>Basic if statement:<br>
+            &#123;% if is_logged_in %&#125;<br>
+            &nbsp;&nbsp;User is logged in.<br>
+            &#123;% endif %&#125;</p>
+            
+            <p>If-else statement:<br>
+            &#123;% if is_admin %&#125;<br>
+            &nbsp;&nbsp;User is an admin.<br>
+            &#123;% else %&#125;<br>
+            &nbsp;&nbsp;User is not an admin.<br>
+            &#123;% endif %&#125;</p>
+        </div>
+    </div>
+    
+    <div class="example">
+        <h2>Truthy and Falsy Values</h2>
+        <p>The following values are considered "true":</p>
+        <ul>
+            <li>"1", "true", "yes", "y", "on" and any non-empty string not explicitly false</li>
+        </ul>
+        
+        <p>The following values are considered "false":</p>
+        <ul>
+            <li>"0", "false", "no", "n", "off" and empty strings</li>
+        </ul>
+        
+        <h3>Examples:</h3>
+        <ul>
+            {% if has_subscription %}
+            <li class="true">has_subscription (value: "{{has_subscription}}") is TRUE</li>
+            {% else %}
+            <li class="false">has_subscription (value: "{{has_subscription}}") is FALSE</li>
+            {% endif %}
+            
+            {% if status %}
+            <li class="true">status (value: "{{status}}") is TRUE</li>
+            {% else %}
+            <li class="false">status (value: "{{status}}") is FALSE</li>
+            {% endif %}
+            
+            {% if empty_var %}
+            <li class="true">empty_var (value: "{{empty_var}}") is TRUE</li>
+            {% else %}
+            <li class="false">empty_var (value: "{{empty_var}}") is FALSE</li>
+            {% endif %}
+        </ul>
+    </div>
+    
+    <div class="example">
+        <h2>Nested Conditions</h2>
+        
+        {% if is_logged_in %}
+            <p class="true">User is logged in.</p>
+            {% if is_admin %}
+                <p class="true">User has admin privileges.</p>
+            {% else %}
+                <p class="false">User has regular privileges.</p>
+                {% if has_subscription %}
+                    <p class="true">User has an active subscription.</p>
+                {% endif %}
+            {% endif %}
+        {% else %}
+            <p class="false">User is not logged in.</p>
+        {% endif %}
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>You can nest conditions inside other conditions:<br>
+            &#123;% if is_logged_in %&#125;<br>
+            &nbsp;&nbsp;User is logged in.<br>
+            &nbsp;&nbsp;&#123;% if is_admin %&#125;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;User has admin privileges.<br>
+            &nbsp;&nbsp;&#123;% else %&#125;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;User has regular privileges.<br>
+            &nbsp;&nbsp;&#123;% endif %&#125;<br>
+            &#123;% endif %&#125;</p>
+        </div>
+    </div>
+</body>
+</html> 
