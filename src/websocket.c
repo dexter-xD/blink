@@ -8,8 +8,17 @@
 #include <sys/select.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
-#include <endian.h>
-#include "request_handler.h" 
+#ifdef __linux__
+    #include <endian.h>
+#elif defined(__APPLE__)
+    #include <machine/endian.h>
+    #include <libkern/OSByteOrder.h>
+    // Define Linux-compatible macros
+    #define __BYTE_ORDER BYTE_ORDER
+    #define __LITTLE_ENDIAN LITTLE_ENDIAN
+    #define __BIG_ENDIAN BIG_ENDIAN
+#endif
+#include "request_handler.h"
 
 // Function declarations
 static char* base64_encode(const unsigned char* input, int length);
@@ -640,8 +649,8 @@ int process_ws_frame(int client_socket, ws_clients_t* clients) {
             break;
             
         case WS_BINARY:
-            printf("%s%s[WebSocket] %sReceived binary message (%s%zu%s bytes)\n", 
-                   BOLD, COLOR_BLUE, COLOR_RESET, COLOR_YELLOW, payload_len, COLOR_RESET);
+            printf("%s%s[WebSocket] %sReceived binary message (%s%llu%s bytes)\n",
+                   BOLD, COLOR_BLUE, COLOR_RESET, COLOR_YELLOW, (unsigned long long)payload_len, COLOR_RESET);
             break;
             
         case WS_CLOSE:

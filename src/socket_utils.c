@@ -13,11 +13,20 @@ int initialize_server(struct sockaddr_in* address) {
         return -1;
     }
 
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) != 0) {
-        perror("setsockopt failed"); 
-        close(server_fd); 
+    // Set SO_REUSEADDR on all platforms
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) != 0) {
+        perror("setsockopt SO_REUSEADDR failed");
+        close(server_fd);
         return -1;
     }
+    
+#ifdef __linux__
+    // SO_REUSEPORT is only set on Linux
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) != 0) {
+        perror("setsockopt SO_REUSEPORT failed");
+        // Continue anyway, this is not critical
+    }
+#endif
 
     address->sin_family = AF_INET;         
     address->sin_addr.s_addr = INADDR_ANY; 
