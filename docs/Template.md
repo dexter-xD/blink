@@ -1,6 +1,6 @@
-# Template Engine Documentation
+# Blink Template Engine Documentation
 
-This document provides a comprehensive guide to using the C-based template engine for dynamic HTML content generation.
+This document provides a comprehensive guide to using the Blink template engine for dynamic HTML content generation.
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@ This document provides a comprehensive guide to using the C-based template engin
 
 ## Introduction
 
-The template engine allows for dynamic HTML generation by combining static HTML with dynamic content. It supports:
+The Blink template engine allows for dynamic HTML generation by combining static HTML with dynamic content. It supports:
 
 - Variable replacement
 - Conditional blocks (if/else)

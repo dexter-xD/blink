@@ -1,13 +1,14 @@
-# TCP Server Project
+# Blink: Lightweight Web Server with Templating
 
-This project is a simple TCP server written in C, using socket programming concepts. It listens on a specified port, accepts client connections, and serves dynamic HTML content based on incoming requests using a templating system that supports dynamic values, if-else conditions, and loops. The code is organized into multiple files with CMake as the build system.
+This project is a simple and fast web server written in C, using socket programming concepts. It listens on a specified port, accepts client connections, and serves dynamic HTML content based on incoming requests using a templating system that supports dynamic values, if-else conditions, and loops. The code is organized into multiple files with CMake as the build system.
 
 ## Features
 
-- TCP socket server implementation
+- Fast and lightweight TCP socket server implementation
 - HTML templating system with dynamic values, conditions, and loops
 - **Hot Reloading**: Automatic browser refresh when HTML files are modified
 - WebSocket implementation for real-time client-server communication
+- Command-line options for configuring server behavior
 
 ## Project Structure
 
@@ -30,6 +31,13 @@ project/
 │   ├── socket_utils.c         # Utility functions for socket operations
 │   ├── file_watcher.c         # File watcher implementation
 │   └── websocket.c            # WebSocket implementation
+├── docs/
+│   └── Template.md            # Detailed templating system documentation
+├── template-examples/
+│   ├── 01-variables.html      # Basic variable replacement examples
+│   ├── 02-conditionals.html   # Conditional logic examples
+│   ├── 03-loops.html          # Loop examples
+│   └── 04-conditional-loops.html # Combined condition and loop examples
 └── README.md                  # Project documentation
 ```
 
@@ -47,7 +55,7 @@ project/
 - **CMake** (version 3.10 or higher)
 - **GCC** or another compatible C compiler
 - **OpenSSL** development libraries
-- **Linux** or **WSL** (Windows Subsystem for Linux) recommended for running this server
+- **Linux** or **WSL** (Windows Subsystem for Linux) recommended for running Blink
 
 ## Setup Instructions
 
@@ -63,7 +71,7 @@ sudo apt install build-essential cmake libssl-dev
 
 ```bash
 git clone <repository_url>
-cd project
+cd blink
 ```
 
 ### 3. Build the Project
@@ -83,29 +91,49 @@ cd project
    make
    ```
 
-This will create an executable file named `server` inside a `bin` directory under the `build` folder.
+This will create an executable file named `blink` inside a `bin` directory under the `build` folder.
 
 ### 4. Run the Server
 
-After building, you can start the server as follows:
+After building, you can start Blink as follows:
 
 ```bash
-./bin/server
+./bin/blink
 ```
 
 The server will listen on port `8080` (default setting) and process incoming client requests.
 
-If port 8080 is already in use, you can specify a different port using the `--port` or `-p` option:
+### Command-Line Options
 
-```bash
-./bin/server --port 8081
+Blink supports several command-line options to customize its behavior:
+
+```
+Options:
+  -p, --port PORT      Specify port number (default: 8080)
+  -s, --serve FILE     Specify a custom HTML file to serve
+  -n, --no-templates   Disable template processing
+  -h, --help           Display help message
 ```
 
-This will start the server on port 8081 instead of the default port.
+Examples:
+
+```bash
+# Run on a different port
+./bin/blink --port 8081
+
+# Serve a specific HTML file
+./bin/blink --serve my-custom-page.html
+
+# Disable template processing
+./bin/blink --no-templates
+
+# Run with multiple options
+./bin/blink --port 9000 --no-templates
+```
 
 ## Hot Reload Feature
 
-The server includes a hot reload feature that automatically refreshes connected browsers when HTML files are modified:
+Blink includes a hot reload feature that automatically refreshes connected browsers when HTML files are modified:
 
 1. The server watches the `html` directory for any changes to HTML files
 2. When a file is modified, the server notifies all connected clients via WebSockets
@@ -115,7 +143,14 @@ This allows for a smoother development experience as you can see your changes im
 
 ## Template Features
 
-The server supports a templating system that allows for dynamic content in HTML files. The following features are implemented:
+Blink supports a templating system that allows for dynamic content in HTML files. For detailed documentation on the templating system, refer to the [Template Documentation](./docs/Template.md).
+
+The template-examples directory contains working examples of each template feature:
+
+- **01-variables.html**: Shows basic variable replacement
+- **02-conditionals.html**: Demonstrates if-else conditional blocks
+- **03-loops.html**: Examples of using loops to iterate over items
+- **04-conditional-loops.html**: Advanced examples combining conditions and loops
 
 ### 1. Dynamic Values
 
@@ -123,7 +158,7 @@ You can replace placeholders in the template with dynamic values. Placeholders a
 
 ### 2. If-Else Conditions
 
-The server can handle if-else statements within templates. Use the following syntax:
+Blink can handle if-else statements within templates. Use the following syntax:
 
 ```
 {% if condition %}
@@ -155,10 +190,10 @@ Create an HTML file (e.g., `index.html`) with the following content to test the 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Template Example</title>
+    <title>Blink Template Example</title>
 </head>
 <body>
-    <h1>Welcome to the Template Server</h1>
+    <h1>Welcome to Blink Server</h1>
     
     <p>{{ greeting }}</p>
 
@@ -180,7 +215,7 @@ Create an HTML file (e.g., `index.html`) with the following content to test the 
 
 ### Sending a Request
 
-To send a request to the server, you can use a web browser or a tool like `curl`. Make sure to specify the correct HTML file to serve based on your request.
+To send a request to Blink, you can use a web browser or a tool like `curl`. Make sure to specify the correct HTML file to serve based on your request.
 
 ## Troubleshooting
 

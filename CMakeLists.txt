@@ -1,6 +1,6 @@
 # CMakeLists.txt
 cmake_minimum_required(VERSION 3.10)
-project(TCPServer)
+project(Blink)
 
 # Set output directories for binaries and libraries
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -12,7 +12,7 @@ find_package(OpenSSL REQUIRED)
 include_directories(include ${OPENSSL_INCLUDE_DIR})
 
 # Add the executable
-add_executable(server 
+add_executable(blink 
     src/server.c 
     src/socket_utils.c 
     src/html_serve.c 
@@ -23,11 +23,11 @@ add_executable(server
 )
 
 # Link with required libraries
-target_link_libraries(server ${OPENSSL_LIBRARIES} pthread)
+target_link_libraries(blink ${OPENSSL_LIBRARIES} pthread)
 
 # Copy www directory to build directory
 add_custom_command(
-    TARGET server POST_BUILD
+    TARGET blink POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/www ${CMAKE_BINARY_DIR}/bin/www
     COMMENT "Copying www directory to build directory"
