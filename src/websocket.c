@@ -11,7 +11,6 @@
 #include <endian.h>
 #include "request_handler.h" 
 
-// Function declarations
 static char* base64_encode(const unsigned char* input, int length);
 static int make_socket_non_blocking(int socket_fd);
 static void cleanup_ws_client(ws_clients_t* clients, int client_socket);

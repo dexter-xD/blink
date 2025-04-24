@@ -64,7 +64,6 @@ static void add_html_file(html_files_t* files, const char* filename) {
         files->capacity = new_capacity;
     }
     
-    // Add the file
     files->filenames[files->count] = strdup(filename);
     files->last_modified[files->count] = 0;  
     files->count++;
