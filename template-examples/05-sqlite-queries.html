@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+  TEMPLATE EXAMPLE: SQLITE QUERIES
+  This example demonstrates how to use SQLite database queries in templates.
+-->
+
+<!-- Define variables for the example -->
+<!-- template:var title="SQLite Query Examples" db_name="example.db" -->
+
+<head>
+    <title>{{title}}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .example { border: 1px solid #ddd; padding: 15px; margin: 20px 0; }
+        .code { background: #f8f8f8; padding: 10px; font-family: monospace; }
+        .sql-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        .sql-table th, .sql-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .sql-table th { background-color: #f2f2f2; font-weight: bold; }
+        .note { background-color: #ffffd9; padding: 10px; border-left: 4px solid #e7dc60; }
+    </style>
+</head>
+<body>
+    <h1>{{title}}</h1>
+    
+    <div class="note">
+        <p><strong>Note:</strong> To use these examples, you must start the server with a SQLite database:</p>
+        <p><code>./bin/blink --database {{db_name}}</code></p>
+        <p>The database should have tables like 'users' and 'products' for these examples to work.</p>
+    </div>
+    
+    <div class="example">
+        <h2>Basic Query</h2>
+        <p>This shows all users in the database:</p>
+        
+        <!-- This will be replaced with an HTML table of results -->
+        {% query "SELECT * FROM users LIMIT 5" %}
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>Use the query tag with an SQL SELECT statement:<br>
+            &#123;&#37; query "SELECT * FROM users LIMIT 5" &#37;&#125;</p>
+            
+            <p>The results are automatically formatted as an HTML table.</p>
+        </div>
+    </div>
+    
+    <div class="example">
+        <h2>Filtered Query</h2>
+        <p>This shows users filtered by a condition:</p>
+        
+        {% query "SELECT id, name, email FROM users WHERE id > 2 ORDER BY name" %}
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>Add WHERE clauses for filtering:<br>
+            &#123;&#37; query "SELECT id, name, email FROM users WHERE id > 2 ORDER BY name" &#37;&#125;</p>
+        </div>
+    </div>
+    
+    <div class="example">
+        <h2>Aggregate Functions</h2>
+        <p>This calculates statistics from the database:</p>
+        
+        {% query "SELECT COUNT(*) AS total_users, MIN(id) AS min_id, MAX(id) AS max_id FROM users" %}
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>Use SQLite's built-in functions:<br>
+            &#123;&#37; query "SELECT COUNT(*) AS total_users, MIN(id) AS min_id, MAX(id) AS max_id FROM users" &#37;&#125;</p>
+        </div>
+    </div>
+    
+    <div class="example">
+        <h2>Join Example</h2>
+        <p>This joins data from multiple tables:</p>
+        
+        {% query "SELECT u.name AS user, p.name AS product FROM users u JOIN products p ON u.id = p.user_id LIMIT 5" %}
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>Use JOIN to combine tables:<br>
+            &#123;&#37; query "SELECT u.name AS user, p.name AS product FROM users u JOIN products p ON u.id = p.user_id LIMIT 5" &#37;&#125;</p>
+        </div>
+    </div>
+    
+    <div class="example">
+        <h2>Form-Based Queries</h2>
+        <p>You can use forms to execute SQL operations:</p>
+        
+        <h3>Query Form Example:</h3>
+        <form action="/sql" method="POST">
+            <input type="hidden" name="sql_action" value="select">
+            <textarea name="sql_query" style="width: 100%; height: 80px;">SELECT * FROM users WHERE id = 1</textarea>
+            <button type="submit" style="margin-top: 10px;">Execute Query</button>
+        </form>
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>Create a form with action="/sql" and method="POST"<br>
+            Add a hidden field: name="sql_action" value="select"<br>
+            Add a textarea with name="sql_query" containing your SQL<br>
+            The results will be displayed after form submission</p>
+        </div>
+    </div>
+    
+    <div class="example">
+        <h2>Insert Data Example</h2>
+        <p>This form allows inserting new records:</p>
+        
+        <form action="/sql" method="POST">
+            <input type="hidden" name="sql_action" value="insert">
+            
+            <label for="name">Name:</label><br>
+            <input type="text" id="name" name="name" required><br><br>
+            
+            <label for="email">Email:</label><br>
+            <input type="email" id="email" name="email" required><br><br>
+            
+            <input type="hidden" name="sql_query" value="INSERT INTO users (name, email) VALUES ('[name]', '[email]')">
+            
+            <button type="submit">Add User</button>
+        </form>
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>Create a form with sql_action="insert"<br>
+            Use placeholders in brackets [fieldname] in your SQL query<br>
+            These will be replaced with the form field values</p>
+        </div>
+    </div>
+    
+    <div class="example">
+        <h2>Combining with Template Features</h2>
+        <p>SQL queries can be combined with other template features:</p>
+        
+        <!-- Define template variables to store our data -->
+        <!-- template:var has_users="1" user_count="12" -->
+        
+        <!-- Show the query to demonstrate where the data would come from -->
+        <h3>Data Source:</h3>
+        {% query "SELECT COUNT(*) AS total FROM users" %}
+        
+        <!-- Use regular template variables instead of query results for the conditional -->
+        <h3>Template with Conditional:</h3>
+        {% if has_users %}
+            <p>We have <strong>{{user_count}}</strong> users in the database!</p>
+        {% else %}
+            <p>No users found in the database.</p>
+        {% endif %}
+        
+        <h3>How it works:</h3>
+        <div class="code">
+            <p>1. First, define template variables for your conditional logic:<br>
+            &lt;!-- template:var has_users="1" user_count="12" --&gt;</p>
+            
+            <p>2. You can see the data from a query (in a real app, you would use this to set the variables):<br>
+            &#123;&#37; query "SELECT COUNT(*) AS total FROM users" &#37;&#125;</p>
+            
+            <p>3. Use template variables in your conditional:<br>
+            &#123;&#37; if has_users &#37;&#125;<br>
+            &nbsp;&nbsp;We have <strong>&#123;&#123;user_count&#125;&#125;</strong> users in the database!<br>
+            &#123;&#37; else &#37;&#125;<br>
+            &nbsp;&nbsp;No users found in the database.<br>
+            &#123;&#37; endif &#37;&#125;</p>
+            
+            <p><strong>Note:</strong> In production, you would use server-side code to set these variables based on query results.</p>
+        </div>
+    </div>
+    
+    <div class="note">
+        <h3>Important Notes</h3>
+        <ul>
+            <li>SQL queries are executed server-side when the page is rendered</li>
+            <li>For security, avoid using user input directly in query templates</li>
+            <li>Use form-based queries with placeholders for user input</li>
+            <li>SQLite features require a database connection</li>
+            <li>Tables are automatically styled with the class "sql-table"</li>
+        </ul>
+    </div>
+</body>
+</html> 

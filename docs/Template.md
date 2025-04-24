@@ -10,8 +10,9 @@ This document provides a comprehensive guide to using the Blink template engine 
 4. [Conditional Logic](#conditional-logic)
 5. [Loops](#loops)
 6. [Conditional Loops](#conditional-loops)
-7. [Nested Elements](#nested-elements)
-8. [Best Practices](#best-practices)
+7. [SQLite Queries](#sqlite-queries)
+8. [Nested Elements](#nested-elements)
+9. [Best Practices](#best-practices)
 
 ## Introduction
 
@@ -21,6 +22,7 @@ The Blink template engine allows for dynamic HTML generation by combining static
 - Conditional blocks (if/else)
 - Loops over items
 - Conditional loops with filtering
+- SQLite database queries
 - Part extraction from delimited values
 
 ## Basic Template Syntax
@@ -53,6 +55,14 @@ Loops use the following syntax:
 {% for item in items %}
   <!-- Content repeated for each item -->
 {% endfor %}
+```
+
+### SQLite Queries
+
+SQL queries use the following syntax:
+
+```html
+{% query "SELECT column1, column2 FROM table_name WHERE condition" %}
 ```
 
 ### Conditional Loops
@@ -188,6 +198,152 @@ Access parts using dot notation:
 
 Currently only single conditions are supported. For complex filtering, pre-filter your data.
 
+## SQLite Queries
+
+### Setting Up SQLite
+
+To use SQLite queries in your templates, you must start the server with a valid SQLite database using the `-db` or `--database` command-line option:
+
+```bash
+./bin/blink --database path/to/your/database.db
+```
+
+If you don't provide a database path, but still want to use SQLite features, Blink will create a default database in the current directory named `blink.db`.
+
+### Basic Query Syntax
+
+Execute SQL queries directly in your templates using the query tag:
+
+```html
+{% query "SELECT * FROM users LIMIT 10" %}
+```
+
+The query results will be automatically rendered as an HTML table with the class `sql-table`.
+
+### Query Examples
+
+#### Basic Queries
+
+Query all tables in the database:
+
+```html
+{% query "SELECT name, type FROM sqlite_master WHERE type='table'" %}
+```
+
+Query specific data with conditions:
+
+```html
+{% query "SELECT id, name, email FROM users WHERE status = 'active'" %}
+```
+
+#### Advanced Queries
+
+Perform joins across tables:
+
+```html
+{% query "SELECT o.id, u.name, o.total FROM orders o JOIN users u ON o.user_id = u.id" %}
+```
+
+Aggregate functions:
+
+```html
+{% query "SELECT COUNT(*) AS total, AVG(price) AS average FROM products" %}
+```
+
+Grouping and ordering:
+
+```html
+{% query "SELECT category, COUNT(*) AS count FROM products GROUP BY category ORDER BY count DESC" %}
+```
+
+### Form-Based Database Operations
+
+Blink supports form-based database operations through POST requests to the `/sql` endpoint.
+
+#### Creating Tables
+
+```html
+<form action="/sql" method="POST">
+    <input type="hidden" name="sql_action" value="create">
+    <textarea name="sql_query">CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE,
+    age INTEGER
+);</textarea>
+    <button type="submit">Create Table</button>
+</form>
+```
+
+#### Inserting Data
+
+```html
+<form action="/sql" method="POST">
+    <input type="hidden" name="sql_action" value="insert">
+    
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" required>
+    
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email">
+    
+    <input type="hidden" name="sql_query" value="INSERT INTO users (name, email) VALUES ('[name]', '[email]')">
+    
+    <button type="submit">Add User</button>
+</form>
+```
+
+#### Updating Data
+
+```html
+<form action="/sql" method="POST">
+    <input type="hidden" name="sql_action" value="update">
+    
+    <label for="id">User ID:</label>
+    <input type="number" id="id" name="id" required>
+    
+    <label for="name">New Name:</label>
+    <input type="text" id="name" name="name">
+    
+    <input type="hidden" name="sql_query" value="UPDATE users SET name='[name]' WHERE id=[id]">
+    
+    <button type="submit">Update User</button>
+</form>
+```
+
+#### Deleting Data
+
+```html
+<form action="/sql" method="POST">
+    <input type="hidden" name="sql_action" value="delete">
+    
+    <label for="id">User ID to Delete:</label>
+    <input type="number" id="id" name="id" required>
+    
+    <input type="hidden" name="sql_query" value="DELETE FROM users WHERE id=[id]">
+    
+    <button type="submit">Delete User</button>
+</form>
+```
+
+### Placeholder Substitution
+
+In SQL forms, you can use placeholders surrounded by square brackets `[placeholder]` to be replaced with form field values:
+
+```html
+INSERT INTO users (name, email, age) VALUES ('[name]', '[email]', [age])
+```
+
+Note that for numeric values (like `[age]`), the brackets don't include quotes, allowing the value to be treated as a number.
+
+### Error Handling
+
+If a query fails (e.g., syntax error, nonexistent table), an error message will be displayed. For successful queries:
+
+- SELECT queries will show results in a formatted table
+- INSERT, UPDATE, DELETE will show success message with affected row count
+- CREATE, DROP, etc. will show success message
+
 ## Nested Elements
 
 The template engine supports nesting conditional blocks and loops.
@@ -196,45 +352,133 @@ The template engine supports nesting conditional blocks and loops.
 
 ```html
 {% if is_logged_in %}
-  {% if is_admin %}
-    <p>Admin view</p>
-  {% else %}
-    <p>User view</p>
-  {% endif %}
+    <div class="user-panel">
+        {% if is_admin %}
+            <a href="/admin">Admin Panel</a>
+        {% else %}
+            <p>Welcome, standard user!</p>
+        {% endif %}
+    </div>
 {% endif %}
 ```
 
-### Loops within Conditionals
+### Nested Loops
 
 ```html
-{% if has_items %}
-  <ul>
-    {% for item in items %}
-      <li>{{item}}</li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>No items found.</p>
-{% endif %}
+{% for category in categories %}
+    <h2>{{category.0}}</h2>
+    <ul>
+        {% for product in products if product.1 == category.0 %}
+            <li>{{product.0}} - ${{product.2}}</li>
+        {% endfor %}
+    </ul>
+{% endfor %}
 ```
 
 ## Best Practices
 
-1. **Keep templates simple**: Separate presentation from complex logic
-2. **Use meaningful variable names**: Clear names make templates more maintainable
-3. **Limit nesting depth**: Excessive nesting makes templates hard to read
-4. **Add comments**: Document complex templates with HTML comments
-5. **Structure multi-part data consistently**: Use consistent field order in pipe-delimited values
-6. **Test templates with minimal data first**: Validate template structure before using complex data
-7. **Consider caching**: For production use, cache processed templates to improve performance
-8. **Validate user input**: Sanitize any user-supplied values used in templates
+### Performance Considerations
 
-## Implementation Details
+- Keep SQL queries simple and optimized
+- Avoid excessive nesting of conditionals and loops
+- Use specific column names in SELECT queries rather than *
+- Add LIMIT clauses to queries when appropriate
 
-Under the hood, the template processor performs multiple passes over the content:
+### Template Organization
 
-1. Replace variables with their values
-2. Process if/else conditions
-3. Process loops (with or without conditions)
+- Use clear, descriptive variable names
+- Comment your templates for clarity
+- Break complex templates into smaller, reusable parts
+- Organize your data efficiently with pipe-delimited values
 
-Each pass transforms the content progressively until the final output is generated. 
+### Security
+
+- Never include sensitive information in template comments
+- Avoid using direct user input in SQL queries
+- Validate all form input on the server
+- Use appropriate data types for SQL fields (e.g., INTEGER for numbers)
+
+### Debugging
+
+- Check server logs for SQL errors
+- Verify database connection when template features aren't working
+- Test templates with sample data before using in production
+- Validate HTML output for proper structure
+
+## Full Example
+
+Here's a complete example combining multiple template features:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{page_title}}</title>
+    <style>
+        .sql-table { border-collapse: collapse; width: 100%; }
+        .sql-table th, .sql-table td { border: 1px solid #ddd; padding: 8px; }
+        .sql-table th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <!-- template:var page_title="Product Dashboard" is_admin="1" -->
+    <!-- template:items 
+        "Electronics|A wide range of electronic devices|25" 
+        "Clothing|Fashion items and accessories|18" 
+        "Books|Fiction and non-fiction books|32" 
+        "Home|Home decor and furnishings|15" 
+    -->
+
+    <h1>{{page_title}}</h1>
+    
+    {% if is_admin %}
+        <div class="admin-panel">
+            <h2>Admin Controls</h2>
+            <p>Welcome, Administrator!</p>
+        </div>
+    {% endif %}
+    
+    <h2>Product Categories</h2>
+    <ul>
+        {% for category in items %}
+            <li>
+                <strong>{{category.0}}</strong>: {{category.1}}
+                <span>({{category.2}} products)</span>
+            </li>
+        {% endfor %}
+    </ul>
+    
+    <h2>High-Stock Categories</h2>
+    <ul>
+        {% for category in items if category.2 > 20 %}
+            <li>{{category.0}} ({{category.2}} products)</li>
+        {% endfor %}
+    </ul>
+    
+    <h2>Recent Products</h2>
+    {% query "SELECT id, name, price, category FROM products ORDER BY id DESC LIMIT 5" %}
+    
+    <h2>Add New Product</h2>
+    <form action="/sql" method="POST">
+        <input type="hidden" name="sql_action" value="insert">
+        
+        <label for="name">Product Name:</label>
+        <input type="text" id="name" name="name" required>
+        
+        <label for="price">Price:</label>
+        <input type="number" id="price" name="price" step="0.01" required>
+        
+        <label for="category">Category:</label>
+        <select id="category" name="category">
+            {% for cat in items %}
+                <option value="{{cat.0}}">{{cat.0}}</option>
+            {% endfor %}
+        </select>
+        
+        <input type="hidden" name="sql_query" value="INSERT INTO products (name, price, category) VALUES ('[name]', [price], '[category]')">
+        
+        <button type="submit">Add Product</button>
+    </form>
+</body>
+</html>
+``` 

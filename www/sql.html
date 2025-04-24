@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- 
+  SQL CRUD OPERATIONS
+  Redesigned using the variable page style and theme
+-->
+
+<!-- template:var title="SQLite Basic" -->
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLite Basic CRUD</title>
+    <style>
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #171717;
+            --card-bg: #1c1c1c;
+            --accent-color: #5d5fef;
+            --accent-hover: #4a4ae0;
+            --text-primary: #f3f3f3;
+            --text-secondary: #b0b0b0;
+            --green: #2ed573;
+            --green-bg: rgba(46, 213, 115, 0.15);
+            --blue: #4f46e5;
+            --blue-bg: rgba(79, 70, 229, 0.15);
+            --code-bg: #252525;
+            --danger: #ff4757;
+            --danger-hover: #ff6b81;
+            --danger-bg: rgba(255, 71, 87, 0.15);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0;
+        }
+        
+        header {
+            padding: 2rem 0 1rem;
+            text-align: center;
+        }
+        
+        .content {
+            flex: 1;
+            padding: 1rem 0 3rem;
+        }
+        
+        h1 {
+            color: var(--accent-color);
+            margin-bottom: 1.5rem;
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+        
+        h2 {
+            margin: 0 0 1rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        h3 {
+            margin: 1.5rem 0 0.8rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        
+        strong {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+        
+        /* Card styles */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .card-header {
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        /* Navigation */
+        .nav-bar {
+            background-color: var(--card-bg);
+            padding: 0.75rem 1rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .nav-bar a {
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            margin-right: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-bar a:hover {
+            background-color: rgba(79, 70, 229, 0.15);
+            color: var(--accent-color);
+        }
+        
+        .nav-bar a.active {
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: 500;
+        }
+        
+        .nav-back {
+            margin-left: auto;
+            background-color: rgba(46, 213, 115, 0.15);
+            color: var(--green) !important;
+        }
+        
+        .nav-back:hover {
+            background-color: rgba(46, 213, 115, 0.3) !important;
+        }
+        
+        /* Example boxes - repurposed for CRUD sections */
+        .example {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Code blocks */
+        .code {
+            background-color: var(--code-bg);
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow-x: auto;
+        }
+        
+        .code p {
+            margin-bottom: 0.75rem;
+        }
+        
+        .code p:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Form styles */
+        form {
+            background-color: var(--bg-secondary);
+            padding: 1.2rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: border-color 0.2s ease;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+        
+        textarea {
+            height: 80px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            resize: vertical;
+        }
+        
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 0.75rem 1.2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+        
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+        
+        .delete-btn {
+            background-color: var(--danger);
+        }
+        
+        .delete-btn:hover {
+            background-color: var(--danger-hover);
+        }
+        
+        /* SQL table styles */
+        .sql-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0 1.5rem;
+            background-color: var(--card-bg);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sql-table th, .sql-table td {
+            padding: 0.8rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .sql-table th {
+            background-color: rgba(0, 0, 0, 0.2);
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+        
+        .sql-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .sql-table tr:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+        
+        /* Pre styling */
+        pre {
+            background-color: var(--code-bg);
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            margin: 1rem 0;
+        }
+        
+        /* List styling */
+        ul {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        li {
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 1.5rem 0;
+            background-color: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: auto;
+        }
+        
+        a {
+            color: var(--accent-color);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        
+        a:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>{{title}}</h1>
+        </header>
+        
+        <div class="content">
+            <div class="nav-bar">
+                <a href="/variables">Variables</a>
+                <a href="/conditionals">Conditionals</a>
+                <a href="/loops">Loops</a>
+                <a href="/conditional-loops">Conditional Loops</a>
+                <a href="/sql" class="active">SQLite</a>
+                <a href="/" class="nav-back">Back to Home</a>
+            </div>
+            
+            <div class="example">
+                <h2>Current Data</h2>
+                <p>Current content of the users table:</p>
+                {% query "SELECT * FROM posts" %}
+            </div>
+            
+            <div class="example">
+                <h2>Create (Insert)</h2>
+                <p>Add a new user to the database:</p>
+                
+                <form action="/sql" method="POST">
+                    <input type="hidden" name="sql_action" value="insert">
+                    
+                    <label for="insert-name">Name:</label>
+                    <input type="text" id="insert-name" name="name" required>
+                    
+                    <label for="insert-email">Email:</label>
+                    <input type="email" id="insert-email" name="email">
+                    
+                    <label for="insert-age">Age:</label>
+                    <input type="number" id="insert-age" name="age" min="1" max="120">
+                    
+                    <input type="hidden" name="sql_query" value="INSERT INTO users (name, email, age) VALUES ('[name]', '[email]', [age])">
+                    
+                    <button type="submit">Add User</button>
+                </form>
+                
+                <h3>How it works:</h3>
+                <div class="code">
+                    <p>This form submits an SQL INSERT statement:<br>
+                    INSERT INTO users (name, email, age) VALUES ('[name]', '[email]', [age])</p>
+                    
+                    <p>The form field values replace the placeholders in brackets.</p>
+                </div>
+            </div>
+            
+            <div class="example">
+                <h2>Read (Select)</h2>
+                <p>Query database information:</p>
+                
+                <h3>Users 18 and Older</h3>
+                {% query "SELECT COUNT(*) AS total_users FROM users" %}
+                
+                <div class="code">
+                    <p>Use the {% query %} template tag to run SQL queries:<br>
+                    {&#37; query "SELECT COUNT(*) AS total_users FROM users" &#37;}</p>
+                </div>
+            </div>
+            
+            <div class="example">
+                <h2>Update</h2>
+                <p>Modify existing user data:</p>
+                
+                <form action="/sql" method="POST">
+                    <input type="hidden" name="sql_action" value="update">
+                    
+                    <label for="update-id">User ID to Update:</label>
+                    <input type="number" id="update-id" name="id" required>
+                    
+                    <label for="update-name">New Name:</label>
+                    <input type="text" id="update-name" name="name">
+                    
+                    <label for="update-email">New Email:</label>
+                    <input type="email" id="update-email" name="email">
+                    
+                    <label for="update-age">New Age:</label>
+                    <input type="number" id="update-age" name="age" min="1" max="120">
+                    
+                    <input type="hidden" name="sql_query" value="UPDATE users SET name='[name]', email='[email]', age=[age] WHERE id=[id]">
+                    
+                    <button type="submit">Update User</button>
+                </form>
+                
+                <h3>How it works:</h3>
+                <div class="code">
+                    <p>This form generates an SQL UPDATE statement:<br>
+                    UPDATE users SET name='[name]', email='[email]', age=[age] WHERE id=[id]</p>
+                </div>
+            </div>
+            
+            <div class="example">
+                <h2>Delete</h2>
+                <p>Remove users from the database:</p>
+                
+                <form action="/sql" method="POST">
+                    <input type="hidden" name="sql_action" value="delete">
+                    
+                    <label for="delete-id">User ID to Delete:</label>
+                    <input type="number" id="delete-id" name="id" required>
+                    
+                    <input type="hidden" name="sql_query" value="DELETE FROM users WHERE id=[id]">
+                    
+                    <button type="submit" class="delete-btn">Delete User</button>
+                </form>
+                
+                <h3>How it works:</h3>
+                <div class="code">
+                    <p>This form runs a DELETE statement:<br>
+                    DELETE FROM users WHERE id=[id]</p>
+                </div>
+            </div>
+            
+            <div class="example">
+                <h2>SQL Templates Guide</h2>
+                <p>Blink Server supports embedding SQL queries directly in your HTML files using templates:</p>
+                
+                <h3>Basic Query Syntax</h3>
+                <div class="code">
+                    <p>To execute an SQL query and display its results in a table, use:<br>
+                    {&#37; query "SELECT * FROM table_name" &#37;}</p>
+                </div>
+                
+                <h3>Example Result</h3>
+                <p>This shows all posts with their titles and content:</p>
+                {% query "SELECT id, title, content FROM posts LIMIT 3" %}
+                
+                <h3>Aggregate Functions</h3>
+                <div class="code">
+                    <p>You can use SQL aggregate functions like COUNT, AVG, SUM:<br>
+                    {&#37; query "SELECT COUNT(*) AS count FROM users" &#37;}</p>
+                </div>
+                
+                <h3>Joining Tables</h3>
+                <div class="code">
+                    <p>For related data, you can join tables:<br>
+                    {&#37; query "SELECT p.title, u.name FROM posts p JOIN users u ON p.user_id = u.id" &#37;}</p>
+                </div>
+                
+                <h3>Example Result</h3>
+                <p>This shows posts with their authors:</p>
+                {% query "SELECT p.title, u.name AS author FROM posts p LEFT JOIN users u ON p.user_id = u.id LIMIT 3" %}
+                
+                <h3>Important Notes</h3>
+                <ul>
+                    <li>The query must be a valid SQL statement</li>
+                    <li>Results are automatically formatted as HTML tables</li>
+                    <li>For security, avoid using user input directly in queries</li>
+                    <li>Keep queries simple for better performance</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="container">
+            Blink Server SQLite CRUD Examples
+        </div>
+    </footer>
+</body>
+</html>

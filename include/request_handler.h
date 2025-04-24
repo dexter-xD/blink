@@ -9,6 +9,7 @@
 #include "template.h"
 #include "websocket.h"
 #include "server.h"
+#include "sqlite_handler.h"
 
 #define BUFFER_SIZE 1024
 

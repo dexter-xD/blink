@@ -1,4 +1,4 @@
-#include "../include/websocket.h"
+#include "websocket.h"
 #include <openssl/sha.h>
 #include <openssl/bio.h>
 #include <openssl/evp.h>

@@ -7,9 +7,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Find required packages
 find_package(OpenSSL REQUIRED)
+find_package(SQLite3 REQUIRED)
 
 # Include directories
-include_directories(include ${OPENSSL_INCLUDE_DIR})
+include_directories(include ${OPENSSL_INCLUDE_DIR} ${SQLite3_INCLUDE_DIRS})
 
 # Add the executable
 add_executable(blink 
@@ -20,10 +21,11 @@ add_executable(blink
     src/template.c
     src/file_watcher.c
     src/websocket.c
+    src/sqlite_handler.c
 )
 
 # Link with required libraries
-target_link_libraries(blink ${OPENSSL_LIBRARIES} pthread)
+target_link_libraries(blink ${OPENSSL_LIBRARIES} ${SQLite3_LIBRARIES} pthread)
 
 # Copy www directory to build directory
 add_custom_command(

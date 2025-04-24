@@ -2,6 +2,8 @@
 #include <signal.h>
 #include <errno.h>
 #include <sys/signal.h>
+#include "sqlite_handler.h"
+#include "debug.h"
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
@@ -26,7 +28,7 @@ void cleanup_resources(void);
 
 void signal_handler(int signum) {
     if (shutdown_in_progress) {
-        printf("\n%s%s[SERVER] %s%sForced shutdown - terminating immediately%s\n", 
+        printf("\n%s%s[SERVER] %s%s[SERVER] Forced shutdown - terminating immediately%s\n", 
                 BOLD, COLOR_RED, BOLD, COLOR_YELLOW, COLOR_RESET);
         
         _exit(EXIT_FAILURE);
@@ -144,6 +146,13 @@ void cleanup_resources(void) {
     }
     
     server_running = 0;
+
+    if (is_db_initialized()) {
+        printf("%s%s[SERVER] %sClosing SQLite database connection...%s\n", 
+              BOLD, COLOR_BLUE, COLOR_CYAN, COLOR_RESET);
+        close_sqlite();
+    }
+    
     if (ws_clients) {
         printf("%s%s[SERVER] %sClosing WebSocket connections...%s\n", 
               BOLD, COLOR_BLUE, COLOR_CYAN, COLOR_RESET);
@@ -216,6 +225,19 @@ int main(int argc, char *argv[]) {
     file_mutex_ptr = &file_mutex;
     int port = PORT; 
     char* custom_html_file = NULL;
+    char* db_path = NULL;
+    
+    if (argc > 1 && argv[1][0] != '-') {
+        custom_html_file = argv[1];
+        printf("%s%s[CONFIG] %sDetected custom HTML file as first argument: %s%s%s\n", 
+               BOLD, COLOR_YELLOW, COLOR_RESET, COLOR_CYAN, custom_html_file, COLOR_RESET);
+        set_custom_html_file(custom_html_file);
+        printf("%s%s[CONFIG] %sCustom HTML file provided as first argument, SQLite will be %s%s%s unless -db is specified\n", 
+               BOLD, COLOR_YELLOW, COLOR_RESET, COLOR_RED, "DISABLED", COLOR_RESET);
+    
+        close_sqlite();
+        set_db_path(NULL);
+    }
     
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--port") == 0) {
@@ -244,16 +266,75 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "%s%s[CONFIG] %sNo file specified after -s/--serve option%s\n", 
                         BOLD, COLOR_YELLOW, COLOR_RESET, COLOR_RESET);
             }
+        } else if (strcmp(argv[i], "-db") == 0 || strcmp(argv[i], "--database") == 0) {
+            if (i + 1 < argc) {
+                db_path = argv[i + 1];
+                set_db_path(db_path);
+                printf("%s%s[CONFIG] %sUsing SQLite database: %s%s%s\n", 
+                       BOLD, COLOR_YELLOW, COLOR_RESET, COLOR_CYAN, db_path, COLOR_RESET);
+                i++;
+            } else {
+                fprintf(stderr, "%s%s[CONFIG] %sNo database path specified after -db/--database option%s\n", 
+                        BOLD, COLOR_YELLOW, COLOR_RESET, COLOR_RESET);
+            }
         } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             printf("%s%s[HELP]%s Usage: %s [OPTIONS]\n", BOLD, COLOR_BLUE, COLOR_RESET, argv[0]);
             printf("Options:\n");
             printf("  -p, --port PORT      Specify port number (default: %d)\n", PORT);
             printf("  -s, --serve FILE     Specify a custom HTML file to serve\n");
+            printf("  -db, --database FILE Specify SQLite database path\n");
             printf("  -n, --no-templates   Disable template processing\n");
             printf("  -h, --help           Display this help message\n");
             return EXIT_SUCCESS;
         }
     }
+    
+    #ifdef DEBUG_MODE
+    printf("%s%s[DEBUG] %sCommand line arguments: custom_html_file=%s, db_path=%s%s\n", 
+           BOLD, COLOR_CYAN, COLOR_RESET, 
+           custom_html_file ? custom_html_file : "NULL", 
+           db_path ? db_path : "NULL", COLOR_RESET);
+    #endif
+    
+    if (db_path != NULL) {
+        if (init_sqlite(db_path) != 0) {
+            fprintf(stderr, "%s%s[SQLite] %s%sFailed to initialize database%s\n", 
+                    BOLD, COLOR_RED, BOLD, COLOR_RESET, COLOR_RESET);
+        }
+    } 
+
+    else if (custom_html_file == NULL) {
+        char default_db_path[256];
+        snprintf(default_db_path, sizeof(default_db_path), "%s/sample.db", HTML_DIR);
+        
+        printf("%s%s[CONFIG] %sNo database specified, using default: %s%s%s\n", 
+               BOLD, COLOR_YELLOW, COLOR_RESET, COLOR_CYAN, default_db_path, COLOR_RESET);
+        
+        if (init_sqlite(default_db_path) != 0) {
+            fprintf(stderr, "%s%s[SQLite] %s%sFailed to initialize default database%s\n", 
+                    BOLD, COLOR_RED, BOLD, COLOR_RESET, COLOR_RESET);
+        }
+    }
+    else {
+        // Make sure SQLite is definitely disabled
+        printf("%s%s[CONFIG] %sCustom HTML file specified but no database path, SQLite remains %s%s%s\n", 
+               BOLD, COLOR_YELLOW, COLOR_RESET, COLOR_RED, "DISABLED", COLOR_RESET);
+        
+        close_sqlite();
+        set_db_path(NULL);
+    }
+    
+    #ifdef DEBUG_MODE
+    if (is_db_initialized()) {
+        printf("%s%s[DEBUG] %sSQLite Status: %s%s%s\n", 
+               BOLD, COLOR_CYAN, COLOR_RESET, 
+               COLOR_GREEN, "ENABLED", COLOR_RESET);
+    } else {
+        printf("%s%s[DEBUG] %sSQLite Status: %s%s%s\n", 
+               BOLD, COLOR_CYAN, COLOR_RESET, 
+               COLOR_RED, "DISABLED", COLOR_RESET);
+    }
+    #endif
     
     set_server_port(port);   
     struct sigaction sa;
@@ -337,6 +418,11 @@ int main(int argc, char *argv[]) {
     printf("%s%s┃  %sHOT RELOAD:%s %-31s  ┃%s\n", BOLD, COLOR_GREEN, COLOR_YELLOW, COLOR_CYAN, "ENABLED", COLOR_RESET);
     printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
     printf("%s%s┃  %sTEMPLATES:%s %-32s  ┃%s\n", BOLD, COLOR_GREEN, COLOR_YELLOW, COLOR_CYAN, enable_templates ? "ENABLED" : "DISABLED", COLOR_RESET);
+    printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
+    printf("%s%s┃  %sSQLITE:%s %-35s  ┃%s\n", BOLD, COLOR_GREEN, COLOR_YELLOW, COLOR_CYAN, is_db_initialized() ? "ENABLED" : "DISABLED", COLOR_RESET);
+    if (is_db_initialized()) {
+        printf("%s%s┃  %sDB PATH:%s %-33s   ┃%s\n", BOLD, COLOR_GREEN, COLOR_YELLOW, COLOR_CYAN, get_db_path(), COLOR_RESET);
+    }
     printf("%s%s┃                                               ┃%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
     printf("%s%s┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛%s\n", BOLD, COLOR_GREEN, COLOR_RESET);
     printf("\n");
