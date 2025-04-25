@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+  MINIMAL TEST: SQLITE FUNCTIONALITY
+  This is a minimal example to test SQLite database functionality with Blink.
+-->
+
+<!-- Define variables for the example -->
+<!-- template:var title="SQLite Test Page" -->
+
+<head>
+    <title>{{title}}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .query-container {
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .sql-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .sql-table th,
+        .sql-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .sql-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>{{title}}</h1>
+
+    <p>This page demonstrates SQLite database functionality with the sample.db database.</p>
+
+    <div class="query-container">
+        <h2>Users Table</h2>
+        <p>Displaying all users from the database:</p>
+
+        {% query "SELECT * FROM users" %}
+    </div>
+
+    <h2>Create (Insert)</h2>
+    <p>Add a new user to the database:</p>
+
+    <form action="/sql" method="POST">
+        <input type="hidden" name="sql_action" value="insert">
+
+        <label for="insert-name">Name:</label>
+        <input type="text" id="insert-name" name="name" required>
+
+        <label for="insert-email">Email:</label>
+        <input type="email" id="insert-email" name="email">
+
+
+        <input type="hidden" name="sql_query" value="INSERT INTO users (name, email) VALUES ('[name]', '[email]')">
+
+        <button type="submit">Add User</button>
+    </form>
+
+
+    <div class="example">
+        <h2>Delete</h2>
+        <p>Remove users from the database:</p>
+
+        <form action="/sql" method="POST">
+            <input type="hidden" name="sql_action" value="delete">
+
+            <label for="delete-id">User ID to Delete:</label>
+            <input type="number" id="delete-id" name="id" required>
+
+            <input type="hidden" name="sql_query" value="DELETE FROM users WHERE id=[id]">
+
+            <button type="submit" class="delete-btn">Delete User</button>
+        </form>
+
+    </div>
+
+    <div class="query-container">
+        <h2>Products Table</h2>
+        <p>Displaying all products from the database:</p>
+
+        {% query "SELECT * FROM products" %}
+    </div>
+</body>
+
+</html>
